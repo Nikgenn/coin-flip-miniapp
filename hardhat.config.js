@@ -27,21 +27,12 @@ module.exports = {
       chainId: 8453,
     },
   },
+  // Etherscan API V2 - единый ключ для всех сетей
   etherscan: {
-    apiKey: {
-      baseSepolia: process.env.BASESCAN_API_KEY || "",
-      base: process.env.BASESCAN_API_KEY || "",
-    },
-    customChains: [
-      {
-        network: "baseSepolia",
-        chainId: 84532,
-        urls: {
-          apiURL: "https://api-sepolia.basescan.org/api",
-          browserURL: "https://sepolia.basescan.org",
-        },
-      },
-    ],
+    apiKey: process.env.BASESCAN_API_KEY || "",
+  },
+  sourcify: {
+    enabled: false,
   },
   paths: {
     sources: "./contracts",

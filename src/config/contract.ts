@@ -1,4 +1,4 @@
-// ABI контракта CoinFlip
+// ABI контракта CoinFlip (v2 - 3 flips per day)
 export const COINFLIP_ABI = [
   {
     "inputs": [{ "internalType": "bool", "name": "chooseHeads", "type": "bool" }],
@@ -16,13 +16,21 @@ export const COINFLIP_ABI = [
   },
   {
     "inputs": [{ "internalType": "address", "name": "player", "type": "address" }],
+    "name": "getFlipsRemaining",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "address", "name": "player", "type": "address" }],
     "name": "getPlayerStats",
     "outputs": [
       { "internalType": "uint256", "name": "totalFlips", "type": "uint256" },
       { "internalType": "uint256", "name": "totalWins", "type": "uint256" },
       { "internalType": "uint256", "name": "currentStreak", "type": "uint256" },
       { "internalType": "uint256", "name": "bestStreak", "type": "uint256" },
-      { "internalType": "bool", "name": "canFlip", "type": "bool" }
+      { "internalType": "bool", "name": "canFlip", "type": "bool" },
+      { "internalType": "uint256", "name": "flipsRemaining", "type": "uint256" }
     ],
     "stateMutability": "view",
     "type": "function"
@@ -49,6 +57,32 @@ export const COINFLIP_ABI = [
     "type": "function"
   },
   {
+    "inputs": [],
+    "name": "DAILY_FREE_FLIPS",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getTotalPlayers",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "uint256", "name": "limit", "type": "uint256" }],
+    "name": "getLeaderboard",
+    "outputs": [
+      { "internalType": "address[]", "name": "addresses", "type": "address[]" },
+      { "internalType": "uint256[]", "name": "wins", "type": "uint256[]" },
+      { "internalType": "uint256[]", "name": "flips", "type": "uint256[]" },
+      { "internalType": "uint256[]", "name": "streaks", "type": "uint256[]" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "anonymous": false,
     "inputs": [
       { "indexed": true, "internalType": "address", "name": "player", "type": "address" },
@@ -57,7 +91,8 @@ export const COINFLIP_ABI = [
       { "indexed": false, "internalType": "bool", "name": "won", "type": "bool" },
       { "indexed": false, "internalType": "uint256", "name": "totalFlips", "type": "uint256" },
       { "indexed": false, "internalType": "uint256", "name": "totalWins", "type": "uint256" },
-      { "indexed": false, "internalType": "uint256", "name": "currentStreak", "type": "uint256" }
+      { "indexed": false, "internalType": "uint256", "name": "currentStreak", "type": "uint256" },
+      { "indexed": false, "internalType": "uint256", "name": "flipsRemaining", "type": "uint256" }
     ],
     "name": "CoinFlipped",
     "type": "event"
@@ -69,3 +104,6 @@ export const COINFLIP_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as `0x$
 
 // Chain ID для Base Sepolia
 export const CHAIN_ID = 84532;
+
+// Количество бесплатных флипов в день
+export const DAILY_FREE_FLIPS = 3;

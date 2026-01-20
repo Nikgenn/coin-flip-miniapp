@@ -1,62 +1,119 @@
 'use client';
 
-import { useConnect, useAccount, useDisconnect } from 'wagmi';
+import { useState } from 'react';
+import { useAccount, useDisconnect } from 'wagmi';
+import { Button } from './ui/Button';
+import { WalletModal } from './WalletModal';
+import { CHAIN_ID } from '@/config/contract';
+
+// UX Decision: Single connect button that opens modal with wallet options
+// Cleaner UI, less overwhelming for new users
 
 export function ConnectWallet() {
-  const { connectors, connect, isPending } = useConnect();
-  const { isConnected, address } = useAccount();
+  const { isConnected, address, chain } = useAccount();
   const { disconnect } = useDisconnect();
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   if (isConnected && address) {
+    const isCorrectNetwork = chain?.id === CHAIN_ID;
+    
     return (
-      <div className="flex flex-col items-center space-y-2">
-        <div className="text-sm text-gray-400">
-          Connected: {address.slice(0, 6)}...{address.slice(-4)}
+      <div className="flex items-center gap-2">
+        {/* Network indicator */}
+        <div 
+          className={`
+            flex items-center gap-2 px-3 py-2 rounded-xl text-sm
+            ${isCorrectNetwork 
+              ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' 
+              : 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20'
+            }
+          `}
+          aria-label={isCorrectNetwork ? 'Connected to Base' : `Connected to ${chain?.name || 'Unknown network'}`}
+        >
+          <span 
+            className={`w-2 h-2 rounded-full ${isCorrectNetwork ? 'bg-blue-400' : 'bg-yellow-400'}`}
+            aria-hidden="true"
+          />
+          <span className="font-medium">
+            {isCorrectNetwork ? 'Base' : chain?.name || 'Wrong'}
+          </span>
         </div>
+
+        {/* Address display */}
+        <div
+          className="
+            flex items-center gap-2 px-3 py-2 rounded-xl text-sm
+            bg-white/5 border border-white/10
+          "
+        >
+          <span className="text-gray-300 font-mono">
+            {formatAddress(address)}
+          </span>
+        </div>
+
+        {/* Disconnect button */}
         <button
           onClick={() => disconnect()}
-          className="btn-secondary text-sm"
+          className="
+            p-2 rounded-xl text-sm
+            bg-white/5 hover:bg-red-500/20 
+            border border-white/10 hover:border-red-500/30
+            text-gray-400 hover:text-red-400
+            transition-all duration-200
+          "
+          aria-label="Disconnect wallet"
+          title="Disconnect"
         >
-          Disconnect
+          <svg 
+            xmlns="http://www.w3.org/2000/svg" 
+            width="18" 
+            height="18" 
+            viewBox="0 0 24 24" 
+            fill="none" 
+            stroke="currentColor" 
+            strokeWidth="2" 
+            strokeLinecap="round" 
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+            <polyline points="16 17 21 12 16 7" />
+            <line x1="21" y1="12" x2="9" y2="12" />
+          </svg>
         </button>
       </div>
     );
   }
 
-  // Фильтруем уникальные коннекторы по имени
-  const uniqueConnectors = connectors.filter((connector, index, self) =>
-    index === self.findIndex((c) => c.name === connector.name)
-  );
-
+  // Disconnected state - single button that opens modal
   return (
-    <div className="flex flex-col items-center space-y-3 w-full max-w-xs">
-      {uniqueConnectors.map((connector) => (
-        <button
-          key={connector.uid}
-          onClick={() => connect({ connector })}
-          disabled={isPending}
-          className={`w-full py-3 px-4 rounded-xl font-medium transition-all ${
-            connector.name.includes('MetaMask') || connector.name.includes('Rabby')
-              ? 'bg-gradient-to-r from-orange-500 to-purple-500 hover:from-orange-600 hover:to-purple-600 text-white'
-              : 'bg-base-blue hover:bg-blue-600 text-white'
-          }`}
-        >
-          {isPending ? (
-            <span className="flex items-center justify-center">
-              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              Connecting...
-            </span>
-          ) : (
-            <span className="flex items-center justify-center">
-              {connector.name.includes('Coinbase') ? '💙 ' : '🔗 '}
-              {connector.name}
-            </span>
-          )}
-        </button>
-      ))}
-    </div>
+    <>
+      <Button
+        onClick={() => setIsModalOpen(true)}
+        size="lg"
+        className="w-full max-w-xs"
+        aria-label="Connect your crypto wallet"
+      >
+        🔗 Connect Wallet
+      </Button>
+      
+      <WalletModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+      />
+    </>
   );
+}
+
+// Compact address display component for use in other places
+export function WalletAddress({ address }: { address: string }) {
+  return (
+    <span className="font-mono text-gray-400">
+      {formatAddress(address)}
+    </span>
+  );
+}
+
+function formatAddress(address: string): string {
+  return `${address.slice(0, 6)}…${address.slice(-4)}`;
 }

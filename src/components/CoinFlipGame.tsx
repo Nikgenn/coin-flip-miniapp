@@ -1,57 +1,116 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract, useSwitchChain } from 'wagmi';
 import { COINFLIP_ABI, COINFLIP_ADDRESS, CHAIN_ID } from '@/config/contract';
+import { Button } from './ui/Button';
+import { Card } from './ui/Card';
+import { Coin } from './Coin';
+import { CountdownTimer } from './CountdownTimer';
+import { Confetti } from './Confetti';
+import { ShareButton } from './ShareButton';
+import { FlipsRemaining } from './FlipsRemaining';
+
+// UX Decision: Explicit game states for clear user feedback
+type GameState = 
+  | 'idle'           // Ready to choose
+  | 'choosing'       // Player selected a side
+  | 'pending'        // Waiting for wallet confirmation
+  | 'confirming'     // Transaction submitted, waiting for confirmation
+  | 'flipping'       // Animation playing
+  | 'result';        // Showing result
 
 type Choice = 'heads' | 'tails' | null;
-type GameState = 'idle' | 'choosing' | 'flipping' | 'result';
 
 export function CoinFlipGame() {
   const { address, chain } = useAccount();
   const { switchChain, isPending: isSwitching } = useSwitchChain();
+  
   const [choice, setChoice] = useState<Choice>(null);
   const [gameState, setGameState] = useState<GameState>('idle');
-  const [lastResult, setLastResult] = useState<{ won: boolean; result: boolean } | null>(null);
+  const [lastResult, setLastResult] = useState<{ won: boolean; result: 'heads' | 'tails' } | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [showConfetti, setShowConfetti] = useState(false);
 
-  // Проверяем, правильная ли сеть (используем chain из кошелька)
+  // Check network
   const isWrongNetwork = chain?.id !== CHAIN_ID;
 
-  // Проверяем, может ли игрок сделать бросок сегодня
-  const { data: canFlip, refetch: refetchCanFlip } = useReadContract({
+  // Get player stats including flips remaining
+  const { data: playerStats, refetch: refetchStats } = useReadContract({
     address: COINFLIP_ADDRESS,
     abi: COINFLIP_ABI,
-    functionName: 'canFlipToday',
+    functionName: 'getPlayerStats',
     args: [address!],
     query: {
       enabled: !!address && !isWrongNetwork,
     },
   });
 
-  // Функция для отправки транзакции
-  const { writeContract, data: hash, isPending, error } = useWriteContract();
+  // Extract flips remaining from stats (index 5 in new contract)
+  const flipsRemaining = playerStats ? Number(playerStats[5]) : 3;
+  const canFlip = flipsRemaining > 0;
 
-  // Ожидание подтверждения транзакции
-  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
-    hash,
-  });
+  // Calculate next flip timestamp (midnight reset)
+  const nextFlipTime = !canFlip ? 
+    BigInt(Math.floor(Date.now() / 1000) + (86400 - (Date.now() / 1000) % 86400)) : 
+    undefined;
 
-  // Обработка результата
+  // Transaction handling
+  const { writeContract, data: hash, isPending, error, reset: resetWrite } = useWriteContract();
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
+
+  // Handle transaction state changes
   useEffect(() => {
-    if (isSuccess && choice && gameState === 'flipping') {
-      // Симулируем результат (в реальности нужно читать из события)
-      const coinResult = Math.random() > 0.5; // true = heads, false = tails
-      const won = (choice === 'heads') === coinResult;
-      setLastResult({ won, result: coinResult });
-      setGameState('result');
-      refetchCanFlip();
+    if (isPending && gameState === 'choosing') {
+      setGameState('pending');
     }
-  }, [isSuccess, choice, gameState, refetchCanFlip]);
+  }, [isPending, gameState]);
 
-  // Обработка ошибок
+  useEffect(() => {
+    if (isConfirming && gameState === 'pending') {
+      setGameState('confirming');
+    }
+  }, [isConfirming, gameState]);
+
+  // Handle successful transaction
+  useEffect(() => {
+    if (isSuccess && (gameState === 'confirming' || gameState === 'pending')) {
+      setGameState('flipping');
+      
+      // After animation completes, show result
+      // In production, read result from contract event
+      setTimeout(() => {
+        const coinResult = Math.random() > 0.5;
+        const resultSide = coinResult ? 'heads' : 'tails';
+        const won = choice === resultSide;
+        
+        setLastResult({ won, result: resultSide });
+        setGameState('result');
+        refetchStats();
+        
+        // Trigger confetti on win!
+        if (won) {
+          setShowConfetti(true);
+          setTimeout(() => setShowConfetti(false), 3500);
+        }
+      }, 2000); // Match animation duration
+    }
+  }, [isSuccess, gameState, choice, refetchStats]);
+
+  // Handle errors
   useEffect(() => {
     if (error) {
-      console.error('Transaction error:', error);
+      // Parse common error messages for better UX
+      let message = 'Transaction failed';
+      if (error.message.includes('rejected')) {
+        message = 'Transaction was rejected';
+      } else if (error.message.includes('insufficient funds')) {
+        message = 'Insufficient funds for gas';
+      } else if (error.message.includes('already flipped')) {
+        message = 'You already flipped today';
+      }
+      
+      setErrorMessage(message);
       setGameState('idle');
     }
   }, [error]);
@@ -59,12 +118,12 @@ export function CoinFlipGame() {
   const handleChoose = (selection: Choice) => {
     setChoice(selection);
     setGameState('choosing');
+    setErrorMessage(null);
   };
 
-  const handleFlip = async () => {
+  const handleFlip = useCallback(async () => {
     if (!choice) return;
-
-    setGameState('flipping');
+    setErrorMessage(null);
 
     try {
       writeContract({
@@ -76,216 +135,259 @@ export function CoinFlipGame() {
       });
     } catch (err) {
       console.error('Flip error:', err);
+      setErrorMessage('Failed to start transaction');
       setGameState('idle');
-      setChoice(null);
     }
-  };
+  }, [choice, writeContract]);
 
-  const handleReset = () => {
+  const handlePlayAgain = () => {
     setChoice(null);
     setLastResult(null);
     setGameState('idle');
-    // Небольшая задержка перед refetch
-    setTimeout(() => refetchCanFlip(), 500);
+    setErrorMessage(null);
+    setShowConfetti(false);
+    resetWrite();
+    setTimeout(() => refetchStats(), 500);
   };
 
-  // Если контракт не настроен
+  const handleRetry = () => {
+    setErrorMessage(null);
+    resetWrite();
+    if (choice) {
+      setGameState('choosing');
+    } else {
+      setGameState('idle');
+    }
+  };
+
+  // Contract not deployed
   if (COINFLIP_ADDRESS === '0x0000000000000000000000000000000000000000') {
     return (
-      <div className="stat-card text-center">
-        <p className="text-yellow-400 mb-2">⚠️ Contract not deployed</p>
+      <Card className="text-center">
+        <div className="text-4xl mb-4">⚠️</div>
+        <h3 className="text-lg font-semibold mb-2">Contract Not Deployed</h3>
         <p className="text-gray-400 text-sm">
-          Deploy the contract and add the address to .env
+          Deploy the contract and update the address in your environment.
         </p>
-      </div>
+      </Card>
     );
   }
 
-  // Если неправильная сеть - показываем кнопку переключения
+  // Wrong network
   if (isWrongNetwork) {
     return (
-      <div className="stat-card text-center">
+      <Card className="text-center">
         <div className="text-4xl mb-4">🔗</div>
-        <p className="text-xl font-bold mb-2">Wrong Network</p>
-        <p className="text-gray-400 text-sm mb-2">
-          You are on: <span className="text-yellow-400">{chain?.name || 'Unknown'}</span>
-        </p>
+        <h3 className="text-lg font-semibold mb-2">Switch Network</h3>
         <p className="text-gray-400 text-sm mb-4">
-          Please switch to <span className="text-green-400">Base Sepolia</span> to play
+          You're on <span className="text-yellow-400">{chain?.name || 'Unknown'}</span>.
+          <br />
+          Please switch to <span className="text-blue-400">Base Sepolia</span> to play.
         </p>
-        <button
+        <Button
           onClick={() => switchChain({ chainId: CHAIN_ID })}
-          disabled={isSwitching}
-          className="btn-primary"
+          isLoading={isSwitching}
+          aria-label="Switch to Base Sepolia network"
         >
-          {isSwitching ? (
-            <span className="flex items-center justify-center">
-              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              Switching...
-            </span>
-          ) : (
-            'Switch to Base Sepolia'
-          )}
-        </button>
-      </div>
+          Switch to Base Sepolia
+        </Button>
+      </Card>
     );
   }
 
-  // Если уже использовал бросок сегодня
-  if (canFlip === false && gameState === 'idle') {
+  // Test mode - simulate win/lose for development
+  const handleTestFlip = (forceWin: boolean) => {
+    setChoice('heads');
+    setGameState('flipping');
+    
+    setTimeout(() => {
+      const result = forceWin ? 'heads' : 'tails';
+      setLastResult({ won: forceWin, result });
+      setGameState('result');
+      
+      if (forceWin) {
+        setShowConfetti(true);
+        setTimeout(() => setShowConfetti(false), 3500);
+      }
+    }, 2000);
+  };
+
+  // No flips remaining today
+  if (!canFlip && gameState === 'idle' && !lastResult) {
     return (
-      <div className="stat-card text-center">
-        <div className="text-4xl mb-4">⏰</div>
-        <p className="text-xl font-bold mb-2">Come back tomorrow!</p>
-        <p className="text-gray-400 text-sm">
-          You've already flipped today.
-          <br />
-          Next flip available in ~24 hours.
+      <Card className="text-center">
+        <div className="mb-6">
+          <Coin state="heads" />
+        </div>
+        <h3 className="text-lg font-semibold mb-2">Come Back Tomorrow!</h3>
+        <p className="text-gray-400 text-sm mb-4">
+          You've used all 3 free flips today.
         </p>
-      </div>
+        <FlipsRemaining remaining={0} />
+        <div className="mt-4">
+          {nextFlipTime && <CountdownTimer nextFlipTime={nextFlipTime} />}
+        </div>
+        
+        {/* Dev test buttons - remove in production */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="mt-6 pt-4 border-t border-white/10">
+            <p className="text-xs text-gray-500 mb-3">🛠 Dev Mode</p>
+            <div className="flex gap-2 justify-center">
+              <button
+                onClick={() => handleTestFlip(true)}
+                className="px-3 py-2 text-xs rounded-lg bg-green-500/20 text-green-400 hover:bg-green-500/30"
+              >
+                Test Win 🎉
+              </button>
+              <button
+                onClick={() => handleTestFlip(false)}
+                className="px-3 py-2 text-xs rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30"
+              >
+                Test Lose 😔
+              </button>
+            </div>
+          </div>
+        )}
+      </Card>
     );
   }
+
+  // Determine coin state for animation
+  const coinState = 
+    gameState === 'flipping' ? 'flipping' :
+    gameState === 'result' && lastResult ? lastResult.result :
+    'idle';
 
   return (
-    <div className="stat-card">
-      {/* Монета */}
-      <div className="flex justify-center mb-6">
-        <div
-          className={`coin ${
-            gameState === 'flipping' || isPending || isConfirming
-              ? 'coin-flip-animation'
-              : lastResult
-              ? lastResult.result
-                ? 'coin-heads'
-                : 'coin-tails'
-              : choice === 'heads'
-              ? 'coin-heads'
-              : choice === 'tails'
-              ? 'coin-tails'
-              : 'coin-heads'
-          } ${lastResult?.won ? 'win-glow' : ''} ${
-            lastResult && !lastResult.won ? 'lose-shake' : ''
-          }`}
-        >
-          {gameState === 'flipping' || isPending || isConfirming ? (
-            '🪙'
-          ) : lastResult ? (
-            lastResult.result ? '👑' : '🦅'
-          ) : choice ? (
-            choice === 'heads' ? '👑' : '🦅'
-          ) : (
-            '?'
-          )}
-        </div>
+    <Card className="stagger-children">
+      {/* Flips remaining indicator */}
+      <div className="mb-4">
+        <FlipsRemaining remaining={flipsRemaining} />
       </div>
 
-      {/* Результат */}
+      {/* Coin Display */}
+      <div className="flex justify-center mb-6">
+        <Coin 
+          state={coinState} 
+          won={lastResult?.won}
+          selectedSide={choice}
+        />
+      </div>
+
+      {/* Confetti celebration */}
+      <Confetti isActive={showConfetti} />
+
+      {/* Result Message */}
       {gameState === 'result' && lastResult && (
-        <div className="text-center mb-6">
-          <p
-            className={`text-2xl font-bold ${
-              lastResult.won ? 'text-green-400' : 'text-red-400'
-            }`}
-          >
+        <div 
+          className="text-center mb-6 animate-slide-up"
+          role="alert"
+          aria-live="assertive"
+        >
+          <p className={`text-2xl font-bold ${lastResult.won ? 'text-green-400' : 'text-red-400'}`}>
             {lastResult.won ? '🎉 You Won!' : '😔 You Lost'}
           </p>
           <p className="text-gray-400 text-sm mt-2">
-            Result: {lastResult.result ? 'Heads 👑' : 'Tails 🦅'}
+            You picked {choice === 'heads' ? '👑 Heads' : '🦅 Tails'} • 
+            Result was {lastResult.result === 'heads' ? '👑 Heads' : '🦅 Tails'}
           </p>
+          
+          {/* Share button */}
+          <div className="mt-4">
+            <ShareButton won={lastResult.won} result={lastResult.result} />
+          </div>
         </div>
       )}
 
-      {/* Выбор */}
+      {/* Choice Selection */}
       {(gameState === 'idle' || gameState === 'choosing') && (
-        <>
-          <p className="text-center text-gray-400 mb-4">Choose your side:</p>
-          <div className="flex justify-center gap-4 mb-6">
+        <div className="mb-6">
+          <p className="text-center text-gray-400 text-sm mb-4">Choose your side:</p>
+          <div className="flex gap-3">
             <button
               onClick={() => handleChoose('heads')}
-              className={`flex-1 py-4 rounded-xl font-bold transition-all ${
-                choice === 'heads'
-                  ? 'bg-yellow-500 text-yellow-900 scale-105'
-                  : 'bg-base-gray hover:bg-gray-700 text-white'
-              }`}
+              className={`
+                flex-1 py-4 rounded-xl font-semibold transition-all duration-200
+                ${choice === 'heads'
+                  ? 'bg-yellow-500/20 text-yellow-400 border-2 border-yellow-500/50 scale-[1.02]'
+                  : 'bg-white/5 text-gray-300 border-2 border-transparent hover:bg-white/10'
+                }
+              `}
+              aria-pressed={choice === 'heads'}
+              aria-label="Choose Heads"
             >
               👑 Heads
             </button>
             <button
               onClick={() => handleChoose('tails')}
-              className={`flex-1 py-4 rounded-xl font-bold transition-all ${
-                choice === 'tails'
-                  ? 'bg-gray-400 text-gray-900 scale-105'
-                  : 'bg-base-gray hover:bg-gray-700 text-white'
-              }`}
+              className={`
+                flex-1 py-4 rounded-xl font-semibold transition-all duration-200
+                ${choice === 'tails'
+                  ? 'bg-gray-400/20 text-gray-300 border-2 border-gray-400/50 scale-[1.02]'
+                  : 'bg-white/5 text-gray-300 border-2 border-transparent hover:bg-white/10'
+                }
+              `}
+              aria-pressed={choice === 'tails'}
+              aria-label="Choose Tails"
             >
               🦅 Tails
             </button>
           </div>
-        </>
+        </div>
       )}
 
-      {/* Кнопка действия */}
-      <div className="flex flex-col gap-3">
-        {gameState === 'result' ? (
-          <button onClick={handleReset} className="btn-secondary">
-            Play Again Tomorrow
+      {/* Error Message */}
+      {errorMessage && (
+        <div 
+          className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-center"
+          role="alert"
+        >
+          <p className="text-red-400 text-sm">{errorMessage}</p>
+          <button 
+            onClick={handleRetry}
+            className="text-red-300 text-sm underline mt-1 hover:text-red-200"
+          >
+            Try again
           </button>
+        </div>
+      )}
+
+      {/* Action Buttons */}
+      <div className="space-y-3">
+        {gameState === 'result' ? (
+          <Button
+            onClick={handlePlayAgain}
+            variant={flipsRemaining > 0 ? 'primary' : 'secondary'}
+            size="lg"
+            className="w-full"
+          >
+            {flipsRemaining > 0 ? `🪙 Play Again (${flipsRemaining} left)` : 'Done for Today'}
+          </Button>
         ) : (
-          <>
-            <button
-              onClick={handleFlip}
-              disabled={!choice || isPending || isConfirming || gameState === 'flipping'}
-              className="btn-primary w-full"
-            >
-              {isPending || isConfirming || gameState === 'flipping' ? (
-                <span className="flex items-center justify-center">
-                  <svg
-                    className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
-                  {isPending ? 'Confirm in wallet...' : isConfirming ? 'Confirming...' : 'Processing...'}
-                </span>
-              ) : (
-                '🪙 Flip Coin!'
-              )}
-            </button>
-            {(isPending || isConfirming || gameState === 'flipping') && (
-              <button
-                onClick={handleReset}
-                className="btn-secondary text-sm"
-              >
-                Cancel
-              </button>
-            )}
-          </>
+          <Button
+            onClick={handleFlip}
+            disabled={!choice || gameState !== 'choosing'}
+            isLoading={gameState === 'pending' || gameState === 'confirming' || gameState === 'flipping'}
+            size="lg"
+            className="w-full"
+            aria-label={choice ? `Flip coin with ${choice} selected` : 'Select a side first'}
+          >
+            {gameState === 'pending' ? 'Confirm in Wallet...' :
+             gameState === 'confirming' ? 'Confirming...' :
+             gameState === 'flipping' ? 'Flipping...' :
+             '🪙 Flip Coin!'}
+          </Button>
         )}
       </div>
 
-      {/* Ошибка */}
-      {error && (
-        <p className="text-red-400 text-sm text-center mt-4">
-          Error: {error.message.slice(0, 100)}...
+      {/* Status hint */}
+      {(gameState === 'pending' || gameState === 'confirming') && (
+        <p className="text-center text-gray-500 text-xs mt-3 animate-pulse">
+          {gameState === 'pending' 
+            ? 'Please confirm the transaction in your wallet'
+            : 'Waiting for blockchain confirmation...'}
         </p>
       )}
-    </div>
+    </Card>
   );
 }
