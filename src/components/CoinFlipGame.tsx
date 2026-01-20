@@ -47,13 +47,15 @@ export function CoinFlipGame() {
   });
 
   // Extract flips remaining from stats (index 5 in new contract)
-  const flipsRemaining = playerStats ? Number(playerStats[5]) : 3;
+  // Fallback to 3 if data not available yet
+  const flipsRemaining = playerStats && playerStats[5] !== undefined 
+    ? Number(playerStats[5]) 
+    : 3;
   const canFlip = flipsRemaining > 0;
 
-  // Calculate next flip timestamp (midnight reset)
-  const nextFlipTime = !canFlip ? 
-    BigInt(Math.floor(Date.now() / 1000) + (86400 - (Date.now() / 1000) % 86400)) : 
-    undefined;
+  // Calculate next flip timestamp (approx 24h from now)
+  const nowInSeconds = Math.floor(Date.now() / 1000);
+  const nextFlipTime = !canFlip ? BigInt(nowInSeconds + 86400) : undefined;
 
   // Transaction handling
   const { writeContract, data: hash, isPending, error, reset: resetWrite } = useWriteContract();
@@ -259,7 +261,7 @@ export function CoinFlipGame() {
     'idle';
 
   return (
-    <Card className="stagger-children">
+    <Card>
       {/* Flips remaining indicator */}
       <div className="mb-4">
         <FlipsRemaining remaining={flipsRemaining} />

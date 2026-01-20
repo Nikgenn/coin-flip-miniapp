@@ -11,7 +11,7 @@ import { Card } from './ui/Card';
 export function Leaderboard() {
   const [isOpen, setIsOpen] = useState(false);
 
-  const { data, isLoading } = useReadContract({
+  const { data, isLoading, error } = useReadContract({
     address: COINFLIP_ADDRESS,
     abi: COINFLIP_ABI,
     functionName: 'getLeaderboard',
@@ -19,6 +19,7 @@ export function Leaderboard() {
     query: {
       enabled: COINFLIP_ADDRESS !== '0x0000000000000000000000000000000000000000',
       refetchInterval: 30000, // Refresh every 30s
+      retry: false, // Don't retry on error
     },
   });
 
@@ -28,8 +29,15 @@ export function Leaderboard() {
     functionName: 'getTotalPlayers',
     query: {
       enabled: COINFLIP_ADDRESS !== '0x0000000000000000000000000000000000000000',
+      retry: false,
     },
   });
+
+  // If contract call fails, don't crash - just hide leaderboard
+  if (error) {
+    console.error('Leaderboard error:', error);
+    return null;
+  }
 
   if (COINFLIP_ADDRESS === '0x0000000000000000000000000000000000000000') {
     return null;

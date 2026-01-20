@@ -23,7 +23,7 @@ export default function Home() {
 
       {/* Main content - centered card */}
       <div className="flex-1 flex flex-col items-center justify-center px-4 pb-8">
-        <div className="w-full max-w-[480px] space-y-6 stagger-children">
+        <div className="w-full max-w-[480px] space-y-6">
           
           {/* Title Section */}
           <div className="text-center">
