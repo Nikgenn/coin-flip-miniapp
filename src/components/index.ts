@@ -1,14 +1,25 @@
+// Core game components
 export { CoinFlipGame } from './CoinFlipGame';
-export { ConnectWallet, WalletAddress } from './ConnectWallet';
-export { PlayerStats } from './PlayerStats';
-export { Providers } from './Providers';
 export { Coin } from './Coin';
+export { FlipsRemaining } from './FlipsRemaining';
 export { CountdownTimer } from './CountdownTimer';
-export { WalletModal } from './WalletModal';
 export { Confetti } from './Confetti';
 export { ShareButton } from './ShareButton';
-export { FlipsRemaining } from './FlipsRemaining';
+
+// Layout & navigation
+export { AppHeader } from './AppHeader';
+export { Onboarding } from './Onboarding';
+
+// Wallet & connection
+export { ConnectWallet, WalletAddress } from './ConnectWallet';
+export { WalletModal } from './WalletModal';
+
+// Stats & social
+export { PlayerStats } from './PlayerStats';
 export { Leaderboard } from './Leaderboard';
+
+// Providers
+export { Providers } from './Providers';
 
 // UI Components
 export { Button } from './ui/Button';

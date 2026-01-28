@@ -1,198 +1,159 @@
-# 🪙 Coin Flip - Base Mini App
+# 🪙 Coin Flip — Base Mini App
 
-Простое и социальное приложение для подбрасывания монетки на Base. Без реальных ставок - просто веселье onchain!
+**Onchain coin flip game on Base. 3 free flips per day. No real money — just fun!**
 
-## Возможности
+## 🌐 Live URL
 
-- ✅ 1 бесплатный бросок в день на кошелёк
-- ✅ Статистика: всего бросков, побед, текущая серия
-- ✅ Onchain события для каждого броска
-- ✅ Мобильный интерфейс
-- ✅ Интеграция с Base Smart Wallet
+**Production:** https://coin-flip-miniapp-ten.vercel.app
 
-## Технологии
+## ✨ Features
 
-- **Frontend**: Next.js 15, React 19, Tailwind CSS
-- **Blockchain**: Solidity 0.8.24, Hardhat
-- **Web3**: wagmi, viem, OnchainKit
-- **Network**: Base Sepolia (тест), Base Mainnet (прод)
+- ✅ **3 free flips per day** per wallet
+- ✅ **Onchain game** — every flip is recorded on Base
+- ✅ **Leaderboard** — compete with other players
+- ✅ **Stats tracking** — wins, streaks, win rate
+- ✅ **Confetti celebration** on wins 🎊
+- ✅ **Share results** — X, Warpcast, or clipboard
+- ✅ **Mobile-first** responsive design
+- ✅ **Coinbase Wallet + MetaMask** support
 
-## Быстрый старт
+## 🔗 Supported Networks
 
-### 1. Установка зависимостей
+| Network | Chain ID | Status |
+|---------|----------|--------|
+| Base Sepolia | 84532 | ✅ Active (testnet) |
+| Base Mainnet | 8453 | 🔜 Coming soon |
+
+## 🔗 Indexing & Discoverability
+
+| Asset | Path |
+|-------|------|
+| Farcaster Manifest | `/.well-known/farcaster.json` |
+| OG Image | `/og.png` (1200×630) |
+| App Icon | `/icon.png` (512×512) |
+| Splash | `/splash.png` |
+| Sitemap | `/sitemap.xml` |
+| Robots | `/robots.txt` |
+
+## 🛠 Tech Stack
+
+- **Frontend:** Next.js 15, React 19, Tailwind CSS
+- **Blockchain:** Solidity 0.8.24, Hardhat
+- **Web3:** wagmi, viem, OnchainKit
+- **Hosting:** Vercel
+
+## 🚀 Quick Start
+
+### 1. Install dependencies
 
 ```bash
-cd coin-flip-miniapp
 npm install
 ```
 
-### 2. Настройка окружения
-
-Скопируйте `.env.example` в `.env` и заполните:
+### 2. Environment setup
 
 ```bash
-copy .env.example .env
+cp .env.example .env
 ```
 
-Отредактируйте `.env`:
+Required variables:
 
 ```env
-# Base Sepolia RPC (можно оставить по умолчанию)
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_CONTRACT_ADDRESS=0x616bFC72D71A1CdEe22cEf26c8c8dB9B0eFf230c
 NEXT_PUBLIC_BASE_SEPOLIA_RPC=https://sepolia.base.org
-
-# Приватный ключ для деплоя (НЕ КОММИТИТЬ!)
 PRIVATE_KEY=your_private_key_here
-
-# После деплоя контракта заполните этот адрес
-NEXT_PUBLIC_CONTRACT_ADDRESS=
-
-# Опционально: для верификации на Basescan
-BASESCAN_API_KEY=
+BASESCAN_API_KEY=your_api_key_here
 ```
 
-### 3. Получение тестовых ETH
+### 3. Get testnet ETH
 
-Для деплоя на Base Sepolia нужны тестовые ETH:
+- [Base Sepolia Faucet](https://www.coinbase.com/faucets/base-ethereum-sepolia-faucet)
+- [Alchemy Faucet](https://www.alchemy.com/faucets/base-sepolia)
 
-1. Перейдите на [Base Sepolia Faucet](https://www.coinbase.com/faucets/base-ethereum-sepolia-faucet)
-2. Или используйте [Alchemy Faucet](https://www.alchemy.com/faucets/base-sepolia)
-
-### 4. Деплой смарт-контракта
+### 4. Deploy contract (optional)
 
 ```bash
-# Компиляция
 npm run compile
-
-# Деплой на Base Sepolia
 npm run deploy
 ```
 
-После деплоя скопируйте адрес контракта в `.env`:
-
-```env
-NEXT_PUBLIC_CONTRACT_ADDRESS=0x1234...
-```
-
-### 5. Запуск приложения
+### 5. Run development server
 
 ```bash
 npm run dev
 ```
 
-Откройте [http://localhost:3000](http://localhost:3000)
+Open [http://localhost:3000](http://localhost:3000)
 
-## Деплой на Vercel
-
-### 1. Push в GitHub
-
-```bash
-git init
-git add .
-git commit -m "Initial commit"
-git remote add origin https://github.com/YOUR_USERNAME/coin-flip-miniapp.git
-git push -u origin main
-```
-
-### 2. Импорт в Vercel
-
-1. Перейдите на [vercel.com](https://vercel.com)
-2. Нажмите "Add New Project"
-3. Импортируйте репозиторий
-4. Добавьте Environment Variables:
-   - `NEXT_PUBLIC_CONTRACT_ADDRESS` = адрес вашего контракта
-   - `NEXT_PUBLIC_BASE_SEPOLIA_RPC` = https://sepolia.base.org
-
-### 3. Настройка манифеста Farcaster
-
-После деплоя обновите `public/.well-known/farcaster.json`:
-
-1. Замените `your-domain.com` на ваш домен Vercel
-2. Создайте accountAssociation через [Warpcast Developer Tools](https://warpcast.com/~/developers)
-3. Загрузите иконки в `public/`:
-   - `icon.png` (200x200)
-   - `og-image.png` (1200x630)
-   - `splash.png` (200x200)
-
-## Структура проекта
+## 📁 Project Structure
 
 ```
 coin-flip-miniapp/
 ├── contracts/
-│   └── CoinFlip.sol          # Смарт-контракт
-├── scripts/
-│   └── deploy.js             # Скрипт деплоя
+│   └── CoinFlip.sol           # Smart contract
 ├── src/
-│   ├── app/
-│   │   ├── api/webhook/      # Webhook для Farcaster
-│   │   ├── globals.css       # Глобальные стили
-│   │   ├── layout.tsx        # Root layout
-│   │   └── page.tsx          # Главная страница
-│   ├── components/
-│   │   ├── CoinFlipGame.tsx  # Игровой компонент
-│   │   ├── ConnectWallet.tsx # Подключение кошелька
-│   │   ├── PlayerStats.tsx   # Статистика игрока
-│   │   └── Providers.tsx     # React providers
+│   ├── app/                   # Next.js app router
+│   ├── components/            # React components
+│   │   ├── AppHeader.tsx      # App branding & network
+│   │   ├── Onboarding.tsx     # 3-step onboarding
+│   │   ├── CoinFlipGame.tsx   # Main game logic
+│   │   ├── ShareButton.tsx    # Social share + clipboard
+│   │   └── ...
 │   └── config/
-│       ├── contract.ts       # ABI и адрес контракта
-│       └── wagmi.ts          # Конфигурация wagmi
+│       ├── app.ts             # App identity (single source)
+│       ├── contract.ts        # Contract ABI & address
+│       └── wagmi.ts           # Wagmi configuration
 ├── public/
 │   ├── .well-known/
-│   │   └── farcaster.json    # Манифест Farcaster
-│   └── manifest.json         # PWA манифест
-├── hardhat.config.js         # Конфигурация Hardhat
-└── package.json
+│   │   └── farcaster.json     # Farcaster manifest
+│   ├── og.png                 # OpenGraph image (1200×630)
+│   ├── icon.png               # App icon (512×512)
+│   ├── robots.txt
+│   └── sitemap.xml
+└── hardhat.config.js
 ```
 
-## Смарт-контракт
+## 📜 Smart Contract
 
-### Основные функции
+**Deployed:** `0x616bFC72D71A1CdEe22cEf26c8c8dB9B0eFf230c` (Base Sepolia)
+
+**Verified:** [View on Basescan](https://sepolia.basescan.org/address/0x616bFC72D71A1CdEe22cEf26c8c8dB9B0eFf230c#code)
+
+### Key Functions
 
 ```solidity
-// Бросок монеты (1 раз в день)
 function flip(bool chooseHeads) external returns (bool won);
-
-// Проверка доступности броска
-function canFlipToday(address player) external view returns (bool);
-
-// Получение статистики игрока
-function getPlayerStats(address player) external view returns (
-    uint256 totalFlips,
-    uint256 totalWins,
-    uint256 currentStreak,
-    uint256 bestStreak,
-    bool canFlip
-);
+function getFlipsRemaining(address player) external view returns (uint256);
+function getLeaderboard(uint256 limit) external view returns (...);
 ```
 
-### События
+## ⚠️ Disclaimer
 
-```solidity
-event CoinFlipped(
-    address indexed player,
-    bool chosenHeads,    // Выбор игрока
-    bool result,         // Результат броска
-    bool won,            // Победа
-    uint256 totalFlips,
-    uint256 totalWins,
-    uint256 currentStreak
-);
-```
+- **Entertainment only** — this is a game, not gambling
+- **Pseudo-random** — uses block data for randomness (not Chainlink VRF)
+- **No real money** — testnet only, no stakes involved
+- For production with real stakes, use [Chainlink VRF](https://docs.chain.link/vrf)
 
-## Безопасность
+## 📋 Submission Checklist
 
-⚠️ **Важно**: Псевдослучайность в контракте НЕ подходит для реальных ставок!
+Before submitting to Base Mini App directory:
 
-Для продакшена с реальными деньгами используйте:
-- [Chainlink VRF](https://docs.chain.link/vrf)
-- [Gelato VRF](https://docs.gelato.network/web3-services/vrf)
+- [ ] `NEXT_PUBLIC_APP_URL` set to production URL
+- [ ] `/og.png` (1200×630) created
+- [ ] `/icon.png` (512×512) created  
+- [ ] `/splash.png` (512×512) created
+- [ ] `/.well-known/farcaster.json` validated
+- [ ] OG tags verified (use [opengraph.xyz](https://opengraph.xyz))
+- [ ] Mobile tested in Coinbase Wallet
 
-## Лицензия
-
-MIT
-
-## Ссылки
+## 📚 Resources
 
 - [Base Mini App Docs](https://docs.base.org/builderkits/minikit/overview)
 - [OnchainKit](https://onchainkit.xyz)
 - [wagmi Docs](https://wagmi.sh)
 - [Base Sepolia Explorer](https://sepolia.basescan.org)
+
+## 📄 License
+
+MIT

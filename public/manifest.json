@@ -1,21 +1,19 @@
 {
-  "name": "Coin Flip",
-  "short_name": "CoinFlip",
-  "description": "Flip a coin onchain! Free daily flip on Base.",
+  "name": "Coin Flip — Base Mini App",
+  "short_name": "Coin Flip",
+  "description": "Onchain coin flip game on Base. 3 free flips per day. No real money — just fun!",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0A0B0D",
-  "theme_color": "#0052FF",
+  "theme_color": "#0A0B0D",
+  "orientation": "portrait",
+  "categories": ["games", "entertainment"],
   "icons": [
     {
-      "src": "/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "/icon-512.png",
+      "src": "/icon.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }
