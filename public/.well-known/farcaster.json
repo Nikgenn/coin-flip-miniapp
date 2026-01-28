@@ -14,5 +14,25 @@
     "splashImageUrl": "https://coin-flip-miniapp-ten.vercel.app/splash.png",
     "splashBackgroundColor": "#0A0B0D",
     "webhookUrl": "https://coin-flip-miniapp-ten.vercel.app/api/webhook"
+  },
+  "miniapp": {
+    "version": "1",
+    "name": "Coin Flip",
+    "homeUrl": "https://coin-flip-miniapp-ten.vercel.app",
+    "iconUrl": "https://coin-flip-miniapp-ten.vercel.app/icon.png",
+    "splashImageUrl": "https://coin-flip-miniapp-ten.vercel.app/splash.png",
+    "splashBackgroundColor": "#0A0B0D",
+    "primaryCategory": "games",
+    "tags": ["games", "base", "coinflip", "entertainment"],
+    "tagline": "3 free flips per day on Base",
+    "subtitle": "Flip a coin onchain",
+    "description": "Onchain coin flip game on Base. 3 free flips per day. No real money — just fun!",
+    "heroImageUrl": "https://coin-flip-miniapp-ten.vercel.app/og.png",
+    "screenshotUrls": [
+      "https://coin-flip-miniapp-ten.vercel.app/og.png"
+    ],
+    "ogTitle": "Coin Flip — Base Mini App",
+    "ogDescription": "3 free flips per day on Base. No real money — just fun!",
+    "ogImageUrl": "https://coin-flip-miniapp-ten.vercel.app/og.png"
   }
 }
