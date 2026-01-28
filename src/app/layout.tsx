@@ -79,6 +79,9 @@ export const metadata: Metadata = {
 
   // Other
   manifest: '/manifest.json',
+  other: {
+    'base:app_id': '697a5f552dbd4b464042aea2',
+  },
 };
 
 // Mobile viewport optimization
