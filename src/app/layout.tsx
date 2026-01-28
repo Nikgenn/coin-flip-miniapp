@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Outfit } from 'next/font/google';
 import './globals.css';
 import { Providers } from '@/components/Providers';
+import { BaseMetaTag } from '@/components/BaseMetaTag';
 import {
   APP_NAME,
   APP_TAGLINE,
@@ -21,7 +22,8 @@ const outfit = Outfit({
 });
 
 // SEO & OpenGraph metadata
-export const metadata: Metadata = {
+export async function generateMetadata(): Promise<Metadata> {
+  return {
   title: {
     default: `${APP_NAME} — Base Mini App`,
     template: `%s | ${APP_NAME}`,
@@ -82,7 +84,8 @@ export const metadata: Metadata = {
   other: {
     'base:app_id': '697a5f552dbd4b464042aea2',
   },
-};
+  };
+}
 
 // Mobile viewport optimization
 export const viewport: Viewport = {
@@ -102,6 +105,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={outfit.variable}>
       <body className={`${outfit.className} text-white min-h-screen min-h-dvh antialiased`}>
+        <BaseMetaTag />
         <Providers>{children}</Providers>
       </body>
     </html>
