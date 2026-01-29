@@ -2,7 +2,13 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract, useSwitchChain } from 'wagmi';
-import { COINFLIP_ABI, COINFLIP_ADDRESS, CHAIN_ID } from '@/config/contract';
+import { 
+  COINFLIP_ABI, 
+  getContractAddress, 
+  isSupportedChain,
+  BASE_MAINNET_CHAIN_ID,
+  BASE_SEPOLIA_CHAIN_ID,
+} from '@/config/contract';
 import { Button } from './ui/Button';
 import { Card } from './ui/Card';
 import { Coin } from './Coin';
@@ -32,17 +38,18 @@ export function CoinFlipGame() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
 
-  // Check network
-  const isWrongNetwork = chain?.id !== CHAIN_ID;
+  // Get contract address for current chain
+  const contractAddress = chain?.id ? getContractAddress(chain.id) : null;
+  const isWrongNetwork = !chain?.id || !isSupportedChain(chain.id);
 
   // Get player stats including flips remaining
   const { data: playerStats, refetch: refetchStats } = useReadContract({
-    address: COINFLIP_ADDRESS,
+    address: contractAddress || '0x0000000000000000000000000000000000000000',
     abi: COINFLIP_ABI,
     functionName: 'getPlayerStats',
     args: [address!],
     query: {
-      enabled: !!address && !isWrongNetwork,
+      enabled: !!address && !!contractAddress && !isWrongNetwork,
     },
   });
 
@@ -124,23 +131,23 @@ export function CoinFlipGame() {
   };
 
   const handleFlip = useCallback(async () => {
-    if (!choice) return;
+    if (!choice || !contractAddress || !chain?.id) return;
     setErrorMessage(null);
 
     try {
       writeContract({
-        address: COINFLIP_ADDRESS,
+        address: contractAddress,
         abi: COINFLIP_ABI,
         functionName: 'flip',
         args: [choice === 'heads'],
-        chainId: CHAIN_ID,
+        chainId: chain.id,
       });
     } catch (err) {
       console.error('Flip error:', err);
       setErrorMessage('Failed to start transaction');
       setGameState('idle');
     }
-  }, [choice, writeContract]);
+  }, [choice, writeContract, contractAddress, chain?.id]);
 
   const handlePlayAgain = () => {
     setChoice(null);
@@ -162,20 +169,20 @@ export function CoinFlipGame() {
     }
   };
 
-  // Contract not deployed
-  if (COINFLIP_ADDRESS === '0x0000000000000000000000000000000000000000') {
+  // Contract not deployed for this network
+  if (!contractAddress && chain?.id && isSupportedChain(chain.id)) {
     return (
       <Card className="text-center">
         <div className="text-4xl mb-4">⚠️</div>
         <h3 className="text-lg font-semibold mb-2">Contract Not Deployed</h3>
         <p className="text-gray-400 text-sm">
-          Deploy the contract and update the address in your environment.
+          Contract is not deployed on this network yet.
         </p>
       </Card>
     );
   }
 
-  // Wrong network
+  // Wrong network - offer to switch
   if (isWrongNetwork) {
     return (
       <Card className="text-center">
@@ -184,15 +191,25 @@ export function CoinFlipGame() {
         <p className="text-gray-400 text-sm mb-4">
           You're on <span className="text-yellow-400">{chain?.name || 'Unknown'}</span>.
           <br />
-          Please switch to <span className="text-blue-400">Base Sepolia</span> to play.
+          Please switch to a supported network to play.
         </p>
-        <Button
-          onClick={() => switchChain({ chainId: CHAIN_ID })}
-          isLoading={isSwitching}
-          aria-label="Switch to Base Sepolia network"
-        >
-          Switch to Base Sepolia
-        </Button>
+        <div className="flex flex-col gap-2">
+          <Button
+            onClick={() => switchChain({ chainId: BASE_MAINNET_CHAIN_ID })}
+            isLoading={isSwitching}
+            aria-label="Switch to Base Mainnet"
+          >
+            🔵 Switch to Base
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() => switchChain({ chainId: BASE_SEPOLIA_CHAIN_ID })}
+            isLoading={isSwitching}
+            aria-label="Switch to Base Sepolia testnet"
+          >
+            Switch to Base Sepolia (Testnet)
+          </Button>
+        </div>
       </Card>
     );
   }

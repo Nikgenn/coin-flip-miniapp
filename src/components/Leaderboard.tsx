@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useReadContract } from 'wagmi';
-import { COINFLIP_ABI, COINFLIP_ADDRESS } from '@/config/contract';
+import { useReadContract, useAccount } from 'wagmi';
+import { COINFLIP_ABI, getContractAddress, isSupportedChain } from '@/config/contract';
 import { Card } from './ui/Card';
 
 // UX Decision: Collapsible leaderboard - clean UI by default
@@ -10,25 +10,28 @@ import { Card } from './ui/Card';
 
 export function Leaderboard() {
   const [isOpen, setIsOpen] = useState(false);
+  const { chain } = useAccount();
+  const contractAddress = chain?.id ? getContractAddress(chain.id) : null;
+  const isSupported = chain?.id ? isSupportedChain(chain.id) : false;
 
   const { data, isLoading, error } = useReadContract({
-    address: COINFLIP_ADDRESS,
+    address: contractAddress || '0x0000000000000000000000000000000000000000',
     abi: COINFLIP_ABI,
     functionName: 'getLeaderboard',
     args: [BigInt(10)], // Top 10
     query: {
-      enabled: COINFLIP_ADDRESS !== '0x0000000000000000000000000000000000000000',
+      enabled: !!contractAddress && isSupported,
       refetchInterval: 30000, // Refresh every 30s
       retry: false, // Don't retry on error
     },
   });
 
   const { data: totalPlayers } = useReadContract({
-    address: COINFLIP_ADDRESS,
+    address: contractAddress || '0x0000000000000000000000000000000000000000',
     abi: COINFLIP_ABI,
     functionName: 'getTotalPlayers',
     query: {
-      enabled: COINFLIP_ADDRESS !== '0x0000000000000000000000000000000000000000',
+      enabled: !!contractAddress && isSupported,
       retry: false,
     },
   });
@@ -39,12 +42,15 @@ export function Leaderboard() {
     return null;
   }
 
-  if (COINFLIP_ADDRESS === '0x0000000000000000000000000000000000000000') {
+  if (!contractAddress || !isSupported) {
     return null;
   }
 
   const [addresses, wins, flips, streaks] = data || [[], [], [], []];
   const playerCount = totalPlayers ? Number(totalPlayers) : 0;
+
+  // Network name for display
+  const networkName = chain?.id === 8453 ? 'Base' : 'Base Sepolia';
 
   return (
     <Card noPadding className="overflow-hidden">
@@ -62,6 +68,9 @@ export function Leaderboard() {
         <div className="flex items-center gap-2">
           <span className="text-xl">🏆</span>
           <span className="font-semibold">Leaderboard</span>
+          <span className="text-xs text-gray-500 bg-white/10 px-2 py-0.5 rounded-full">
+            {networkName}
+          </span>
           {playerCount > 0 && (
             <span className="text-xs text-gray-500 bg-white/10 px-2 py-0.5 rounded-full">
               {playerCount} players
@@ -100,7 +109,7 @@ export function Leaderboard() {
           ) : !addresses || addresses.length === 0 ? (
             <div className="py-8 text-center">
               <p className="text-gray-400 text-sm">
-                No players yet. Be the first! 🎯
+                No players yet on {networkName}. Be the first! 🎯
               </p>
             </div>
           ) : (

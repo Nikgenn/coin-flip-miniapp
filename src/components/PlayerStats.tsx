@@ -1,7 +1,7 @@
 'use client';
 
-import { useReadContract } from 'wagmi';
-import { COINFLIP_ABI, COINFLIP_ADDRESS } from '@/config/contract';
+import { useReadContract, useAccount } from 'wagmi';
+import { COINFLIP_ABI, getContractAddress, isSupportedChain } from '@/config/contract';
 import { StatCard } from './ui/Card';
 
 // UX Decision: Compact stats display that doesn't distract from main game
@@ -12,19 +12,23 @@ interface PlayerStatsProps {
 }
 
 export function PlayerStats({ address }: PlayerStatsProps) {
+  const { chain } = useAccount();
+  const contractAddress = chain?.id ? getContractAddress(chain.id) : null;
+  const isSupported = chain?.id ? isSupportedChain(chain.id) : false;
+
   const { data: stats, isLoading } = useReadContract({
-    address: COINFLIP_ADDRESS,
+    address: contractAddress || '0x0000000000000000000000000000000000000000',
     abi: COINFLIP_ABI,
     functionName: 'getPlayerStats',
     args: [address],
     query: {
-      enabled: !!address && COINFLIP_ADDRESS !== '0x0000000000000000000000000000000000000000',
+      enabled: !!address && !!contractAddress && isSupported,
       refetchInterval: 10000,
     },
   });
 
-  // Don't show if contract not configured
-  if (COINFLIP_ADDRESS === '0x0000000000000000000000000000000000000000') {
+  // Don't show if contract not configured or unsupported network
+  if (!contractAddress || !isSupported) {
     return null;
   }
 

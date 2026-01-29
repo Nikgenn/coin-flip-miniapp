@@ -19,8 +19,6 @@ export { PlayerStats } from './PlayerStats';
 export { Leaderboard } from './Leaderboard';
 
 // Providers
-export { Providers } from './Providers';
-
-// UI Components
+export { Providers } from './Providers';// UI Components
 export { Button } from './ui/Button';
 export { Card, StatCard } from './ui/Card';
