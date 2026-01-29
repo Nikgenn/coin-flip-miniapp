@@ -28,7 +28,7 @@ export const ASSETS = {
   icon: '/icon.png',
   ogImage: '/og.png',
   splash: '/splash.png',
-  favicon: '/favicon.ico',
+  favicon: '/icon.png', // Using icon.png as favicon
 } as const;
 
 // Full URLs for external use
