@@ -3,8 +3,9 @@ import { baseSepolia, base } from 'wagmi/chains';
 import { coinbaseWallet, injected } from 'wagmi/connectors';
 
 // Конфигурация для Base Mini App
+// Base Mainnet first = default network for production
 export const config = createConfig({
-  chains: [baseSepolia, base],
+  chains: [base, baseSepolia],
   connectors: [
     // Универсальный injected (MetaMask, Rabby, и другие)
     injected(),
