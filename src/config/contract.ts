@@ -1,4 +1,5 @@
 // ABI контракта CoinFlip (v2 - 3 flips per day)
+// ⚠️ НЕ ИЗМЕНЯТЬ ABI — это интерфейс контракта
 export const COINFLIP_ABI = [
   {
     "inputs": [{ "internalType": "bool", "name": "chooseHeads", "type": "bool" }],
@@ -99,35 +100,105 @@ export const COINFLIP_ABI = [
   }
 ] as const;
 
-// Chain IDs
-export const BASE_MAINNET_CHAIN_ID = 8453;
-export const BASE_SEPOLIA_CHAIN_ID = 84532;
+// =============================================================================
+// CHAIN CONFIGURATION — MAINNET-ONLY (user-facing)
+// =============================================================================
 
-// Contract addresses for each network
+/** Primary supported chain — Base Mainnet */
+export const SUPPORTED_CHAIN_ID = 8453;
+
+/** Legacy chain IDs (kept for backward compatibility, hidden from users) */
+export const BASE_MAINNET_CHAIN_ID = 8453;
+export const BASE_SEPOLIA_CHAIN_ID = 84532; // Legacy/dev only
+
+// =============================================================================
+// CONTRACT ADDRESSES
+// =============================================================================
+
+/** Contract addresses by chainId */
 export const CONTRACT_ADDRESSES: Record<number, `0x${string}`> = {
-  [BASE_MAINNET_CHAIN_ID]: '0x1fdE97Dff11Ff6d190cCC645a3302aaa482E4302', // Base Mainnet
-  [BASE_SEPOLIA_CHAIN_ID]: (process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as `0x${string}`) || '0x616bFC72D71A1CdEe22cEf26c8c8dB9B0eFf230c', // Base Sepolia
+  [BASE_MAINNET_CHAIN_ID]: '0x1fdE97Dff11Ff6d190cCC645a3302aaa482E4302',
+  // Legacy Sepolia address (hidden from users, for dev/testing only)
+  [BASE_SEPOLIA_CHAIN_ID]: (process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as `0x${string}`) || '0x616bFC72D71A1CdEe22cEf26c8c8dB9B0eFf230c',
 };
 
-// Default to mainnet for production
-export const DEFAULT_CHAIN_ID = BASE_MAINNET_CHAIN_ID;
+/** Default chain for production */
+export const DEFAULT_CHAIN_ID = SUPPORTED_CHAIN_ID;
 
-// Helper function to get contract address for a chain
-export function getContractAddress(chainId: number): `0x${string}` | null {
-  return CONTRACT_ADDRESSES[chainId] || null;
+/**
+ * Get contract address for a chain
+ * @param chainId - defaults to SUPPORTED_CHAIN_ID (mainnet)
+ */
+export function getContractAddress(chainId: number = SUPPORTED_CHAIN_ID): `0x${string}` | null {
+  const address = CONTRACT_ADDRESSES[chainId];
+  
+  // Runtime guard for mainnet
+  if (chainId === SUPPORTED_CHAIN_ID && (!address || address.startsWith('0x0'))) {
+    console.warn('[contract] Base Mainnet contract address not configured');
+    return null;
+  }
+  
+  return address || null;
 }
 
-// Supported chain IDs
-export const SUPPORTED_CHAIN_IDS = [BASE_MAINNET_CHAIN_ID, BASE_SEPOLIA_CHAIN_ID];
+// =============================================================================
+// CHAIN HELPERS
+// =============================================================================
 
-// Check if chain is supported
+/** User-facing supported chain IDs (mainnet only) */
+export const SUPPORTED_CHAIN_IDS = [SUPPORTED_CHAIN_ID];
+
+/** Legacy: all known chain IDs (for internal/dev use) */
+export const ALL_CHAIN_IDS = [BASE_MAINNET_CHAIN_ID, BASE_SEPOLIA_CHAIN_ID];
+
+/**
+ * Check if chain is supported for users (mainnet only)
+ */
 export function isSupportedChain(chainId: number): boolean {
-  return SUPPORTED_CHAIN_IDS.includes(chainId);
+  return chainId === SUPPORTED_CHAIN_ID;
 }
 
-// Legacy exports for backward compatibility
+/**
+ * Check if chain is known (mainnet or legacy sepolia)
+ * For internal/dev use only
+ */
+export function isKnownChain(chainId: number): boolean {
+  return ALL_CHAIN_IDS.includes(chainId);
+}
+
+// =============================================================================
+// EXPLORER HELPERS
+// =============================================================================
+
+/**
+ * Get Basescan transaction URL
+ */
+export function getBasescanTxUrl(txHash: string, chainId: number = SUPPORTED_CHAIN_ID): string {
+  const baseUrl = chainId === BASE_SEPOLIA_CHAIN_ID 
+    ? 'https://sepolia.basescan.org' 
+    : 'https://basescan.org';
+  return `${baseUrl}/tx/${txHash}`;
+}
+
+/**
+ * Get Basescan address URL
+ */
+export function getBasescanAddressUrl(address: string, chainId: number = SUPPORTED_CHAIN_ID): string {
+  const baseUrl = chainId === BASE_SEPOLIA_CHAIN_ID 
+    ? 'https://sepolia.basescan.org' 
+    : 'https://basescan.org';
+  return `${baseUrl}/address/${address}`;
+}
+
+// =============================================================================
+// LEGACY EXPORTS (backward compatibility)
+// =============================================================================
+
 export const COINFLIP_ADDRESS = CONTRACT_ADDRESSES[DEFAULT_CHAIN_ID];
 export const CHAIN_ID = DEFAULT_CHAIN_ID;
 
-// Количество бесплатных флипов в день
+// =============================================================================
+// GAME CONSTANTS
+// =============================================================================
+
 export const DAILY_FREE_FLIPS = 3;

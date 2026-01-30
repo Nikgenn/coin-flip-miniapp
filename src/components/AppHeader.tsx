@@ -1,30 +1,27 @@
 'use client';
 
 import { useAccount } from 'wagmi';
-import { isSupportedChain, BASE_MAINNET_CHAIN_ID, BASE_SEPOLIA_CHAIN_ID } from '@/config/contract';
+import { isSupportedChain, SUPPORTED_CHAIN_ID } from '@/config/contract';
 import { APP_NAME, APP_TAGLINE } from '@/config/app';
 
 /**
  * AppHeader - Displays app branding and network context
- * Shows current network status for connected users
+ * Shows current network status for connected users (Base Mainnet only)
  */
 export function AppHeader() {
   const { isConnected, chain } = useAccount();
   
   const getNetworkInfo = (chainId: number | undefined) => {
-    if (!chainId) return { name: 'Unknown', isMainnet: false, isSupported: false };
+    if (!chainId) return { name: 'Unknown', isSupported: false };
     
-    if (chainId === BASE_MAINNET_CHAIN_ID) {
-      return { name: 'Base', isMainnet: true, isSupported: true };
-    }
-    if (chainId === BASE_SEPOLIA_CHAIN_ID) {
-      return { name: 'Base Sepolia', isMainnet: false, isSupported: true };
+    if (chainId === SUPPORTED_CHAIN_ID) {
+      return { name: 'Base', isSupported: true };
     }
     
-    return { name: chain?.name || 'Unknown', isMainnet: false, isSupported: false };
+    return { name: chain?.name || 'Unknown', isSupported: false };
   };
 
-  const { name: networkName, isMainnet, isSupported } = getNetworkInfo(chain?.id);
+  const { name: networkName, isSupported } = getNetworkInfo(chain?.id);
 
   return (
     <header className="w-full px-4 pt-4 pb-2">
@@ -47,20 +44,16 @@ export function AppHeader() {
           <div 
             className={`
               flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium
-              ${isMainnet 
+              ${isSupported 
                 ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' 
-                : isSupported
-                  ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20'
-                  : 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20'
+                : 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20'
               }
             `}
             role="status"
             aria-label={`Connected to ${networkName}`}
           >
             <span 
-              className={`w-1.5 h-1.5 rounded-full ${
-                isMainnet ? 'bg-blue-400' : isSupported ? 'bg-purple-400' : 'bg-yellow-400'
-              }`}
+              className={`w-1.5 h-1.5 rounded-full ${isSupported ? 'bg-blue-400' : 'bg-yellow-400'}`}
               aria-hidden="true"
             />
             <span>{networkName}</span>

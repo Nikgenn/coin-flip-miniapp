@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useReadContract, useAccount } from 'wagmi';
-import { COINFLIP_ABI, getContractAddress, isSupportedChain } from '@/config/contract';
+import { COINFLIP_ABI, getContractAddress, isSupportedChain, SUPPORTED_CHAIN_ID } from '@/config/contract';
 import { Card } from './ui/Card';
 
 // UX Decision: Collapsible leaderboard - clean UI by default
@@ -49,8 +49,8 @@ export function Leaderboard() {
   const [addresses, wins, flips, streaks] = data || [[], [], [], []];
   const playerCount = totalPlayers ? Number(totalPlayers) : 0;
 
-  // Network name for display
-  const networkName = chain?.id === 8453 ? 'Base' : 'Base Sepolia';
+  // Network name for display (mainnet only)
+  const networkName = chain?.id === SUPPORTED_CHAIN_ID ? 'Base' : chain?.name || 'Unknown';
 
   return (
     <Card noPadding className="overflow-hidden">
@@ -109,7 +109,7 @@ export function Leaderboard() {
           ) : !addresses || addresses.length === 0 ? (
             <div className="py-8 text-center">
               <p className="text-gray-400 text-sm">
-                No players yet on {networkName}. Be the first! 🎯
+                No players yet. Be the first! 🎯
               </p>
             </div>
           ) : (

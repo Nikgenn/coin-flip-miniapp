@@ -17,12 +17,25 @@
 - ✅ **Mobile-first** responsive design
 - ✅ **Coinbase Wallet + MetaMask** support
 
-## 🔗 Supported Networks
+## 🔗 Network
 
 | Network | Chain ID | Status |
 |---------|----------|--------|
-| Base Sepolia | 84532 | ✅ Active (testnet) |
-| Base Mainnet | 8453 | 🔜 Coming soon |
+| **Base Mainnet** | 8453 | ✅ Active |
+
+## 📜 Smart Contract
+
+| Network | Address | Explorer |
+|---------|---------|----------|
+| Base Mainnet | `0x1fdE97Dff11Ff6d190cCC645a3302aaa482E4302` | [View on Basescan](https://basescan.org/address/0x1fdE97Dff11Ff6d190cCC645a3302aaa482E4302#code) |
+
+### Key Functions
+
+```solidity
+function flip(bool chooseHeads) external returns (bool won);
+function getFlipsRemaining(address player) external view returns (uint256);
+function getLeaderboard(uint256 limit) external view returns (...);
+```
 
 ## 🔗 Indexing & Discoverability
 
@@ -56,35 +69,38 @@ npm install
 cp .env.example .env
 ```
 
-Required variables:
+Environment variables:
 
 ```env
+# Required
 NEXT_PUBLIC_APP_URL=http://localhost:3000
-NEXT_PUBLIC_CONTRACT_ADDRESS=0x616bFC72D71A1CdEe22cEf26c8c8dB9B0eFf230c
+
+# RPC (optional — defaults to public endpoints)
+NEXT_PUBLIC_BASE_RPC=https://mainnet.base.org
+
+# Legacy/dev (optional)
 NEXT_PUBLIC_BASE_SEPOLIA_RPC=https://sepolia.base.org
+NEXT_PUBLIC_CONTRACT_ADDRESS=0x616bFC72D71A1CdEe22cEf26c8c8dB9B0eFf230c
+
+# Deployment
 PRIVATE_KEY=your_private_key_here
 BASESCAN_API_KEY=your_api_key_here
 ```
 
-### 3. Get testnet ETH
-
-- [Base Sepolia Faucet](https://www.coinbase.com/faucets/base-ethereum-sepolia-faucet)
-- [Alchemy Faucet](https://www.alchemy.com/faucets/base-sepolia)
-
-### 4. Deploy contract (optional)
-
-```bash
-npm run compile
-npm run deploy
-```
-
-### 5. Run development server
+### 3. Run development server
 
 ```bash
 npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000)
+
+### 4. Deploy to Mainnet (optional)
+
+```bash
+npm run compile
+npx hardhat run scripts/deploy.js --network baseMainnet
+```
 
 ## 📁 Project Structure
 
@@ -100,10 +116,12 @@ coin-flip-miniapp/
 │   │   ├── CoinFlipGame.tsx   # Main game logic
 │   │   ├── ShareButton.tsx    # Social share + clipboard
 │   │   └── ...
-│   └── config/
-│       ├── app.ts             # App identity (single source)
-│       ├── contract.ts        # Contract ABI & address
-│       └── wagmi.ts           # Wagmi configuration
+│   ├── config/
+│   │   ├── app.ts             # App identity (single source)
+│   │   ├── contract.ts        # Contract ABI & address
+│   │   └── wagmi.ts           # Wagmi configuration
+│   └── lib/
+│       └── tx.ts              # Transaction layer (sponsorship-ready)
 ├── public/
 │   ├── .well-known/
 │   │   └── farcaster.json     # Farcaster manifest
@@ -114,45 +132,33 @@ coin-flip-miniapp/
 └── hardhat.config.js
 ```
 
-## 📜 Smart Contract
-
-**Deployed:** `0x616bFC72D71A1CdEe22cEf26c8c8dB9B0eFf230c` (Base Sepolia)
-
-**Verified:** [View on Basescan](https://sepolia.basescan.org/address/0x616bFC72D71A1CdEe22cEf26c8c8dB9B0eFf230c#code)
-
-### Key Functions
-
-```solidity
-function flip(bool chooseHeads) external returns (bool won);
-function getFlipsRemaining(address player) external view returns (uint256);
-function getLeaderboard(uint256 limit) external view returns (...);
-```
-
 ## ⚠️ Disclaimer
 
 - **Entertainment only** — this is a game, not gambling
 - **Pseudo-random** — uses block data for randomness (not Chainlink VRF)
-- **No real money** — testnet only, no stakes involved
+- **No real stakes** — play for fun, not profit
 - For production with real stakes, use [Chainlink VRF](https://docs.chain.link/vrf)
 
 ## 📋 Submission Checklist
 
 Before submitting to Base Mini App directory:
 
-- [ ] `NEXT_PUBLIC_APP_URL` set to production URL
-- [ ] `/og.png` (1200×630) created
-- [ ] `/icon.png` (512×512) created  
-- [ ] `/splash.png` (512×512) created
-- [ ] `/.well-known/farcaster.json` validated
+- [x] Contract deployed to Base Mainnet
+- [x] `NEXT_PUBLIC_APP_URL` set to production URL
+- [x] `/og.png` (1200×630) created
+- [x] `/icon.png` (512×512) created  
+- [x] `/splash.png` (512×512) created
+- [x] `/.well-known/farcaster.json` validated
 - [ ] OG tags verified (use [opengraph.xyz](https://opengraph.xyz))
 - [ ] Mobile tested in Coinbase Wallet
+- [ ] Gas sponsorship enabled (optional)
 
 ## 📚 Resources
 
 - [Base Mini App Docs](https://docs.base.org/builderkits/minikit/overview)
 - [OnchainKit](https://onchainkit.xyz)
 - [wagmi Docs](https://wagmi.sh)
-- [Base Sepolia Explorer](https://sepolia.basescan.org)
+- [Base Explorer](https://basescan.org)
 
 ## 📄 License
 

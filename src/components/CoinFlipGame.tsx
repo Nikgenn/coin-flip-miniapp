@@ -6,9 +6,9 @@ import {
   COINFLIP_ABI, 
   getContractAddress, 
   isSupportedChain,
-  BASE_MAINNET_CHAIN_ID,
-  BASE_SEPOLIA_CHAIN_ID,
+  SUPPORTED_CHAIN_ID,
 } from '@/config/contract';
+import { prepareGameTx } from '@/lib/tx';
 import { Button } from './ui/Button';
 import { Card } from './ui/Card';
 import { Coin } from './Coin';
@@ -38,7 +38,7 @@ export function CoinFlipGame() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
 
-  // Get contract address for current chain
+  // Get contract address for current chain (mainnet only)
   const contractAddress = chain?.id ? getContractAddress(chain.id) : null;
   const isWrongNetwork = !chain?.id || !isSupportedChain(chain.id);
 
@@ -130,24 +130,30 @@ export function CoinFlipGame() {
     setErrorMessage(null);
   };
 
+  // Centralized transaction via prepareGameTx (ready for future sponsorship)
   const handleFlip = useCallback(async () => {
-    if (!choice || !contractAddress || !chain?.id) return;
+    if (!choice || !chain?.id) return;
     setErrorMessage(null);
 
     try {
-      writeContract({
-        address: contractAddress,
-        abi: COINFLIP_ABI,
-        functionName: 'flip',
-        args: [choice === 'heads'],
+      // Use centralized tx preparation (future: can add mode: 'sponsored')
+      const txParams = prepareGameTx({
+        chooseHeads: choice === 'heads',
         chainId: chain.id,
       });
+      
+      if (!txParams) {
+        setErrorMessage('Contract not available');
+        return;
+      }
+
+      writeContract(txParams);
     } catch (err) {
       console.error('Flip error:', err);
       setErrorMessage('Failed to start transaction');
       setGameState('idle');
     }
-  }, [choice, writeContract, contractAddress, chain?.id]);
+  }, [choice, writeContract, chain?.id]);
 
   const handlePlayAgain = () => {
     setChoice(null);
@@ -176,40 +182,30 @@ export function CoinFlipGame() {
         <div className="text-4xl mb-4">⚠️</div>
         <h3 className="text-lg font-semibold mb-2">Contract Not Deployed</h3>
         <p className="text-gray-400 text-sm">
-          Contract is not deployed on this network yet.
+          Contract is not deployed on Base yet.
         </p>
       </Card>
     );
   }
 
-  // Wrong network - offer to switch
+  // Wrong network - offer to switch to Base Mainnet only
   if (isWrongNetwork) {
     return (
       <Card className="text-center">
         <div className="text-4xl mb-4">🔗</div>
-        <h3 className="text-lg font-semibold mb-2">Switch Network</h3>
+        <h3 className="text-lg font-semibold mb-2">Switch to Base</h3>
         <p className="text-gray-400 text-sm mb-4">
           You're on <span className="text-yellow-400">{chain?.name || 'Unknown'}</span>.
           <br />
-          Please switch to a supported network to play.
+          Please switch to <span className="text-blue-400">Base</span> to play.
         </p>
-        <div className="flex flex-col gap-2">
-          <Button
-            onClick={() => switchChain({ chainId: BASE_MAINNET_CHAIN_ID })}
-            isLoading={isSwitching}
-            aria-label="Switch to Base Mainnet"
-          >
-            🔵 Switch to Base
-          </Button>
-          <Button
-            variant="secondary"
-            onClick={() => switchChain({ chainId: BASE_SEPOLIA_CHAIN_ID })}
-            isLoading={isSwitching}
-            aria-label="Switch to Base Sepolia testnet"
-          >
-            Switch to Base Sepolia (Testnet)
-          </Button>
-        </div>
+        <Button
+          onClick={() => switchChain({ chainId: SUPPORTED_CHAIN_ID })}
+          isLoading={isSwitching}
+          aria-label="Switch to Base network"
+        >
+          🔵 Switch to Base
+        </Button>
       </Card>
     );
   }
