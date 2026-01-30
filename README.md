@@ -132,6 +132,55 @@ coin-flip-miniapp/
 └── hardhat.config.js
 ```
 
+## ⛽ Gas Sponsorship
+
+This app supports **gasless transactions** via CDP Paymaster. Users with Coinbase Wallet (Smart Wallet) can flip for free!
+
+### How It Works
+
+1. App checks if wallet supports `paymasterService` capability
+2. If supported, transactions are sponsored (user pays $0 gas)
+3. If not supported, falls back to regular transactions
+
+### Setup (for developers)
+
+1. **Create CDP Account**
+   - Go to [Coinbase Developer Platform](https://coinbase.com/developer-platform)
+   - Sign up or sign in
+
+2. **Get Paymaster URL**
+   - Navigate to [Onchain Tools > Paymaster](https://portal.cdp.coinbase.com/products/bundler-and-paymaster)
+   - Select **Base** network
+   - Copy the **Paymaster & Bundler endpoint**
+
+3. **Whitelist Contract**
+   - In CDP Portal, go to **Contract allowlist**
+   - Add: `0x1fdE97Dff11Ff6d190cCC645a3302aaa482E4302`
+   - Function: `flip`
+
+4. **Configure Environment**
+   ```env
+   NEXT_PUBLIC_PAYMASTER_URL=https://api.developer.coinbase.com/rpc/v1/base/YOUR_KEY
+   ```
+
+5. **Fund Paymaster**
+   - Deposit ETH to your paymaster balance in CDP Portal
+
+### Supported Wallets
+
+| Wallet | Gas Sponsorship |
+|--------|-----------------|
+| Coinbase Wallet (Smart) | ✅ Supported |
+| MetaMask | ❌ Regular tx only |
+| Other Injected | ❌ Regular tx only |
+
+### Graceful Fallback
+
+If sponsorship fails or is unavailable:
+- App automatically falls back to regular transactions
+- User sees clear message about gas requirement
+- No transaction is lost
+
 ## ⚠️ Disclaimer
 
 - **Entertainment only** — this is a game, not gambling

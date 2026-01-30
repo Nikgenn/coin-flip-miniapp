@@ -2,19 +2,21 @@
  * Transaction Layer — Centralized transaction sending
  * 
  * This module provides a single point for all game transactions,
- * preparing for future gas sponsorship / paymaster integration.
+ * with support for gas sponsorship via CDP Paymaster.
  * 
- * CURRENT STATE: Regular wagmi transactions
- * FUTURE STATE: Can be extended for sponsored/AA transactions
+ * MODES:
+ * - 'regular': Standard transaction (user pays gas)
+ * - 'sponsored': Gasless via paymaster (if wallet supports it)
  */
 
 import { COINFLIP_ABI, SUPPORTED_CHAIN_ID, getContractAddress } from '@/config/contract';
+import { isPaymasterConfigured, getPaymasterCapabilities, walletSupportsPaymaster } from '@/config/paymaster';
 
 // =============================================================================
 // TYPES
 // =============================================================================
 
-/** Transaction mode — regular now, sponsored in future */
+/** Transaction mode */
 export type TxMode = 'regular' | 'sponsored';
 
 /** Parameters for game transactions */
@@ -27,7 +29,7 @@ export interface GameTxParams {
   chooseHeads: boolean;
 }
 
-/** Result from preparing a transaction */
+/** Result from preparing a transaction for regular writeContract */
 export interface PreparedGameTx {
   address: `0x${string}`;
   abi: typeof COINFLIP_ABI;
@@ -36,34 +38,40 @@ export interface PreparedGameTx {
   chainId: number;
 }
 
+/** Contract call for writeContracts (sponsored mode) */
+export interface ContractCall {
+  address: `0x${string}`;
+  abi: typeof COINFLIP_ABI;
+  functionName: 'flip';
+  args: [boolean];
+}
+
+/** Result from preparing a sponsored transaction for writeContracts */
+export interface PreparedSponsoredTx {
+  contracts: ContractCall[];
+  capabilities: Record<number, { paymasterService?: { url: string } }>;
+  chainId: number;
+}
+
 // =============================================================================
 // TRANSACTION HELPERS
 // =============================================================================
 
 /**
- * Prepare game transaction parameters for wagmi writeContract
- * 
- * This centralizes transaction preparation for future sponsorship support.
- * Currently returns standard wagmi params; can be extended for AA/paymaster.
+ * Prepare game transaction for regular wagmi writeContract
  * 
  * @example
  * const txParams = prepareGameTx({ chooseHeads: true });
  * writeContract(txParams);
  */
 export function prepareGameTx(params: GameTxParams): PreparedGameTx | null {
-  const { mode = 'regular', chainId = SUPPORTED_CHAIN_ID, chooseHeads } = params;
+  const { chainId = SUPPORTED_CHAIN_ID, chooseHeads } = params;
   
   const contractAddress = getContractAddress(chainId);
   
   if (!contractAddress) {
     console.error('[tx] Contract address not available for chain:', chainId);
     return null;
-  }
-  
-  // TODO: When mode === 'sponsored', prepare for paymaster/AA
-  // For now, both modes use regular transactions
-  if (mode === 'sponsored') {
-    console.info('[tx] Sponsored mode requested but not yet implemented, falling back to regular');
   }
   
   return {
@@ -76,42 +84,110 @@ export function prepareGameTx(params: GameTxParams): PreparedGameTx | null {
 }
 
 /**
+ * Prepare game transaction for sponsored mode (writeContracts)
+ * 
+ * Uses CDP Paymaster for gasless transactions.
+ * Only works with Smart Wallet (Coinbase Wallet).
+ * 
+ * @example
+ * const txParams = prepareSponsoredGameTx({ chooseHeads: true });
+ * writeContracts(txParams);
+ */
+export function prepareSponsoredGameTx(params: GameTxParams): PreparedSponsoredTx | null {
+  const { chainId = SUPPORTED_CHAIN_ID, chooseHeads } = params;
+  
+  const contractAddress = getContractAddress(chainId);
+  
+  if (!contractAddress) {
+    console.error('[tx] Contract address not available for chain:', chainId);
+    return null;
+  }
+  
+  if (!isPaymasterConfigured()) {
+    console.warn('[tx] Paymaster URL not configured');
+    return null;
+  }
+  
+  return {
+    contracts: [{
+      address: contractAddress,
+      abi: COINFLIP_ABI,
+      functionName: 'flip',
+      args: [chooseHeads],
+    }],
+    capabilities: getPaymasterCapabilities(chainId),
+    chainId,
+  };
+}
+
+// =============================================================================
+// SPONSORSHIP CHECKS
+// =============================================================================
+
+/**
  * Check if sponsorship is available
  * 
- * Placeholder for future integration.
- * Will check paymaster balance, user eligibility, etc.
+ * Requires:
+ * 1. Paymaster URL configured in env
+ * 2. Wallet supports paymasterService capability (Smart Wallet)
+ * 
+ * @param walletCapabilities - Result from useCapabilities hook
  */
-export function isSponsorshipAvailable(): boolean {
-  // TODO: Implement when paymaster is integrated
-  // - Check paymaster contract balance
-  // - Check user eligibility
-  // - Check daily limits
-  return false;
+export function isSponsorshipAvailable(
+  walletCapabilities?: Record<number, Record<string, { supported?: boolean }>>
+): boolean {
+  // Check if paymaster URL is configured
+  if (!isPaymasterConfigured()) {
+    return false;
+  }
+  
+  // Check if wallet supports paymaster
+  if (!walletSupportsPaymaster(walletCapabilities)) {
+    return false;
+  }
+  
+  return true;
 }
 
 /**
- * Get recommended transaction mode
+ * Get recommended transaction mode based on wallet capabilities
  * 
- * Returns 'sponsored' if available and beneficial, otherwise 'regular'.
+ * @param walletCapabilities - Result from useCapabilities hook
  */
-export function getRecommendedTxMode(): TxMode {
-  return isSponsorshipAvailable() ? 'sponsored' : 'regular';
+export function getRecommendedTxMode(
+  walletCapabilities?: Record<number, Record<string, { supported?: boolean }>>
+): TxMode {
+  return isSponsorshipAvailable(walletCapabilities) ? 'sponsored' : 'regular';
+}
+
+/**
+ * Get human-readable sponsorship status
+ */
+export function getSponsorshipStatus(
+  walletCapabilities?: Record<number, Record<string, { supported?: boolean }>>
+): { available: boolean; reason: string } {
+  if (!isPaymasterConfigured()) {
+    return { 
+      available: false, 
+      reason: 'Gas sponsorship not configured by app' 
+    };
+  }
+  
+  if (!walletSupportsPaymaster(walletCapabilities)) {
+    return { 
+      available: false, 
+      reason: 'Your wallet does not support gasless transactions. Use Coinbase Wallet (Smart Wallet) for free gas.' 
+    };
+  }
+  
+  return { 
+    available: true, 
+    reason: 'Gas sponsored — free to play!' 
+  };
 }
 
 // =============================================================================
-// FUTURE: SPONSORSHIP HOOKS (placeholder)
+// RE-EXPORTS
 // =============================================================================
 
-/**
- * Placeholder for future sponsored transaction preparation
- * 
- * When implementing paymaster/AA:
- * 1. Replace this with actual UserOperation building
- * 2. Add bundler interaction
- * 3. Add paymaster signature fetching
- */
-// export async function prepareSponsoredTx(params: GameTxParams) {
-//   // Future: Build UserOperation for ERC-4337
-//   // Future: Get paymaster signature
-//   // Future: Submit to bundler
-// }
+export { isPaymasterConfigured, getPaymasterCapabilities } from '@/config/paymaster';

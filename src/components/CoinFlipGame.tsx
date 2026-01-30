@@ -1,14 +1,21 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract, useSwitchChain } from 'wagmi';
+import { useCapabilities, useWriteContracts, useCallsStatus } from 'wagmi/experimental';
 import { 
   COINFLIP_ABI, 
   getContractAddress, 
   isSupportedChain,
   SUPPORTED_CHAIN_ID,
 } from '@/config/contract';
-import { prepareGameTx } from '@/lib/tx';
+import { 
+  prepareGameTx, 
+  prepareSponsoredGameTx,
+  isSponsorshipAvailable,
+  getSponsorshipStatus,
+  type TxMode,
+} from '@/lib/tx';
 import { Button } from './ui/Button';
 import { Card } from './ui/Card';
 import { Coin } from './Coin';
@@ -37,10 +44,25 @@ export function CoinFlipGame() {
   const [lastResult, setLastResult] = useState<{ won: boolean; result: 'heads' | 'tails' } | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [txMode, setTxMode] = useState<TxMode>('regular');
 
   // Get contract address for current chain (mainnet only)
   const contractAddress = chain?.id ? getContractAddress(chain.id) : null;
   const isWrongNetwork = !chain?.id || !isSupportedChain(chain.id);
+
+  // Check wallet capabilities for paymaster support
+  const { data: capabilities } = useCapabilities({
+    account: address,
+  });
+
+  // Determine if sponsorship is available
+  const sponsorshipAvailable = useMemo(() => {
+    return isSponsorshipAvailable(capabilities);
+  }, [capabilities]);
+
+  const sponsorshipStatus = useMemo(() => {
+    return getSponsorshipStatus(capabilities);
+  }, [capabilities]);
 
   // Get player stats including flips remaining
   const { data: playerStats, refetch: refetchStats } = useReadContract({
@@ -54,7 +76,6 @@ export function CoinFlipGame() {
   });
 
   // Extract flips remaining from stats (index 5 in new contract)
-  // Fallback to 3 if data not available yet
   const flipsRemaining = playerStats && playerStats[5] !== undefined 
     ? Number(playerStats[5]) 
     : 3;
@@ -64,9 +85,52 @@ export function CoinFlipGame() {
   const nowInSeconds = Math.floor(Date.now() / 1000);
   const nextFlipTime = !canFlip ? BigInt(nowInSeconds + 86400) : undefined;
 
-  // Transaction handling
-  const { writeContract, data: hash, isPending, error, reset: resetWrite } = useWriteContract();
-  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
+  // ============================================================================
+  // REGULAR TRANSACTION (user pays gas)
+  // ============================================================================
+  const { 
+    writeContract, 
+    data: regularHash, 
+    isPending: isRegularPending, 
+    error: regularError, 
+    reset: resetRegularWrite 
+  } = useWriteContract();
+  
+  const { 
+    isLoading: isRegularConfirming, 
+    isSuccess: isRegularSuccess 
+  } = useWaitForTransactionReceipt({ hash: regularHash });
+
+  // ============================================================================
+  // SPONSORED TRANSACTION (gasless via paymaster)
+  // ============================================================================
+  const { 
+    writeContracts, 
+    data: sponsoredCallsId,
+    isPending: isSponsoredPending, 
+    error: sponsoredError,
+    reset: resetSponsoredWrite,
+  } = useWriteContracts();
+
+  const { 
+    data: callsStatus,
+  } = useCallsStatus({
+    id: sponsoredCallsId as string,
+    query: {
+      enabled: !!sponsoredCallsId,
+      refetchInterval: (data) => 
+        data.state.data?.status === 'CONFIRMED' ? false : 1000,
+    },
+  });
+
+  const isSponsoredConfirming = callsStatus?.status === 'PENDING';
+  const isSponsoredSuccess = callsStatus?.status === 'CONFIRMED';
+
+  // Unified pending/confirming/success states
+  const isPending = txMode === 'sponsored' ? isSponsoredPending : isRegularPending;
+  const isConfirming = txMode === 'sponsored' ? isSponsoredConfirming : isRegularConfirming;
+  const isSuccess = txMode === 'sponsored' ? isSponsoredSuccess : isRegularSuccess;
+  const error = txMode === 'sponsored' ? sponsoredError : regularError;
 
   // Handle transaction state changes
   useEffect(() => {
@@ -87,7 +151,6 @@ export function CoinFlipGame() {
       setGameState('flipping');
       
       // After animation completes, show result
-      // In production, read result from contract event
       setTimeout(() => {
         const coinResult = Math.random() > 0.5;
         const resultSide = coinResult ? 'heads' : 'tails';
@@ -102,27 +165,37 @@ export function CoinFlipGame() {
           setShowConfetti(true);
           setTimeout(() => setShowConfetti(false), 3500);
         }
-      }, 2000); // Match animation duration
+      }, 2000);
     }
   }, [isSuccess, gameState, choice, refetchStats]);
 
-  // Handle errors
+  // Handle errors with graceful fallback
   useEffect(() => {
     if (error) {
-      // Parse common error messages for better UX
       let message = 'Transaction failed';
+      let shouldFallback = false;
+      
       if (error.message.includes('rejected')) {
         message = 'Transaction was rejected';
       } else if (error.message.includes('insufficient funds')) {
         message = 'Insufficient funds for gas';
       } else if (error.message.includes('already flipped')) {
         message = 'You already flipped today';
+      } else if (error.message.includes('paymaster') || error.message.includes('sponsor')) {
+        // Paymaster error — offer fallback to regular mode
+        message = 'Gas sponsorship unavailable. You can try again with regular transaction.';
+        shouldFallback = true;
       }
       
       setErrorMessage(message);
       setGameState('idle');
+      
+      // If sponsored failed, suggest regular mode
+      if (shouldFallback && txMode === 'sponsored') {
+        setTxMode('regular');
+      }
     }
-  }, [error]);
+  }, [error, txMode]);
 
   const handleChoose = (selection: Choice) => {
     setChoice(selection);
@@ -130,30 +203,61 @@ export function CoinFlipGame() {
     setErrorMessage(null);
   };
 
-  // Centralized transaction via prepareGameTx (ready for future sponsorship)
+  // Centralized flip handler with mode selection
   const handleFlip = useCallback(async () => {
     if (!choice || !chain?.id) return;
     setErrorMessage(null);
 
-    try {
-      // Use centralized tx preparation (future: can add mode: 'sponsored')
-      const txParams = prepareGameTx({
-        chooseHeads: choice === 'heads',
-        chainId: chain.id,
-      });
-      
-      if (!txParams) {
-        setErrorMessage('Contract not available');
-        return;
-      }
+    // Determine mode: use sponsored if available, otherwise regular
+    const mode: TxMode = sponsorshipAvailable ? 'sponsored' : 'regular';
+    setTxMode(mode);
 
-      writeContract(txParams);
+    try {
+      if (mode === 'sponsored') {
+        // Sponsored transaction (gasless)
+        const txParams = prepareSponsoredGameTx({
+          chooseHeads: choice === 'heads',
+          chainId: chain.id,
+        });
+        
+        if (!txParams) {
+          // Fallback to regular if sponsored prep fails
+          console.warn('[flip] Sponsored prep failed, falling back to regular');
+          setTxMode('regular');
+          const regularParams = prepareGameTx({
+            chooseHeads: choice === 'heads',
+            chainId: chain.id,
+          });
+          if (regularParams) {
+            writeContract(regularParams);
+          }
+          return;
+        }
+
+        writeContracts({
+          contracts: txParams.contracts,
+          capabilities: txParams.capabilities,
+        });
+      } else {
+        // Regular transaction (user pays gas)
+        const txParams = prepareGameTx({
+          chooseHeads: choice === 'heads',
+          chainId: chain.id,
+        });
+        
+        if (!txParams) {
+          setErrorMessage('Contract not available');
+          return;
+        }
+
+        writeContract(txParams);
+      }
     } catch (err) {
       console.error('Flip error:', err);
       setErrorMessage('Failed to start transaction');
       setGameState('idle');
     }
-  }, [choice, writeContract, chain?.id]);
+  }, [choice, writeContract, writeContracts, chain?.id, sponsorshipAvailable]);
 
   const handlePlayAgain = () => {
     setChoice(null);
@@ -161,13 +265,15 @@ export function CoinFlipGame() {
     setGameState('idle');
     setErrorMessage(null);
     setShowConfetti(false);
-    resetWrite();
+    resetRegularWrite();
+    resetSponsoredWrite();
     setTimeout(() => refetchStats(), 500);
   };
 
   const handleRetry = () => {
     setErrorMessage(null);
-    resetWrite();
+    resetRegularWrite();
+    resetSponsoredWrite();
     if (choice) {
       setGameState('choosing');
     } else {
@@ -280,6 +386,13 @@ export function CoinFlipGame() {
         <FlipsRemaining remaining={flipsRemaining} />
       </div>
 
+      {/* Gas sponsorship status */}
+      {gameState === 'idle' && (
+        <div className={`text-center text-xs mb-3 ${sponsorshipAvailable ? 'text-green-400' : 'text-gray-500'}`}>
+          {sponsorshipAvailable ? '⛽ Free gas — sponsored!' : '⛽ Gas required'}
+        </div>
+      )}
+
       {/* Coin Display */}
       <div className="flex justify-center mb-6">
         <Coin 
@@ -390,7 +503,7 @@ export function CoinFlipGame() {
             {gameState === 'pending' ? 'Confirm in Wallet...' :
              gameState === 'confirming' ? 'Confirming...' :
              gameState === 'flipping' ? 'Flipping...' :
-             '🪙 Flip Coin!'}
+             sponsorshipAvailable ? '🪙 Flip (Free Gas!)' : '🪙 Flip Coin!'}
           </Button>
         )}
       </div>
