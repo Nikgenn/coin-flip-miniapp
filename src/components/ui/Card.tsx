@@ -4,6 +4,7 @@ import { type ReactNode } from 'react';
 
 // UX Decision: Card provides consistent container styling
 // with subtle glass-morphism effect for depth
+// Supports light and dark themes via CSS variables
 
 interface CardProps {
   children: ReactNode;
@@ -15,11 +16,10 @@ export function Card({ children, className = '', noPadding = false }: CardProps)
   return (
     <div
       className={`
-        bg-gradient-to-b from-white/[0.08] to-white/[0.02]
+        card-container
         backdrop-blur-xl
-        border border-white/[0.08]
         rounded-2xl
-        shadow-2xl shadow-black/20
+        shadow-2xl
         ${noPadding ? '' : 'p-6'}
         ${className}
       `}
@@ -33,15 +33,15 @@ export function Card({ children, className = '', noPadding = false }: CardProps)
 export function StatCard({ 
   label, 
   value, 
-  valueColor = 'text-white' 
+  valueColor = '' 
 }: { 
   label: string; 
   value: string | number; 
   valueColor?: string;
 }) {
   return (
-    <div className="text-center p-3 rounded-xl bg-white/[0.03]">
-      <p className={`text-2xl font-bold ${valueColor}`}>{value}</p>
+    <div className="text-center p-3 rounded-xl stat-card">
+      <p className={`text-2xl font-bold ${valueColor || 'text-inherit'}`}>{value}</p>
       <p className="text-xs text-gray-500 mt-1">{label}</p>
     </div>
   );

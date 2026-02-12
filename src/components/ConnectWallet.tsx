@@ -6,13 +6,27 @@ import { Button } from './ui/Button';
 import { WalletModal } from './WalletModal';
 import { CHAIN_ID } from '@/config/contract';
 
-// UX Decision: Single connect button that opens modal with wallet options
-// Cleaner UI, less overwhelming for new users
+/**
+ * ConnectWallet - handles wallet connection UI
+ * Base Mini App Guidelines: 
+ * - CTA says "Start Playing" not "Connect Wallet"
+ * - Address hidden, shown as "You" with copy option
+ */
 
 export function ConnectWallet() {
   const { isConnected, address, chain } = useAccount();
   const { disconnect } = useDisconnect();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  // Copy address to clipboard
+  const handleCopyAddress = async () => {
+    if (address) {
+      await navigator.clipboard.writeText(address);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
   if (isConnected && address) {
     const isCorrectNetwork = chain?.id === CHAIN_ID;
@@ -39,17 +53,22 @@ export function ConnectWallet() {
           </span>
         </div>
 
-        {/* Address display */}
-        <div
+        {/* User indicator - shows "You" instead of 0x address */}
+        <button
+          onClick={handleCopyAddress}
           className="
             flex items-center gap-2 px-3 py-2 rounded-xl text-sm
             bg-white/5 border border-white/10
+            hover:bg-white/10 transition-colors
+            cursor-pointer
           "
+          title={`Click to copy: ${address}`}
+          aria-label="Copy your wallet address"
         >
-          <span className="text-gray-300 font-mono">
-            {formatAddress(address)}
+          <span className="text-gray-300">
+            {copied ? '✓ Copied!' : '👤 You'}
           </span>
-        </div>
+        </button>
 
         {/* Disconnect button */}
         <button
@@ -61,7 +80,7 @@ export function ConnectWallet() {
             text-gray-400 hover:text-red-400
             transition-all duration-200
           "
-          aria-label="Disconnect wallet"
+          aria-label="Disconnect"
           title="Disconnect"
         >
           <svg 
@@ -85,16 +104,16 @@ export function ConnectWallet() {
     );
   }
 
-  // Disconnected state - single button that opens modal
+  // Disconnected state - "Start Playing" button
   return (
     <>
       <Button
         onClick={() => setIsModalOpen(true)}
         size="lg"
         className="w-full max-w-xs"
-        aria-label="Connect your crypto wallet"
+        aria-label="Start playing the coin flip game"
       >
-        🔗 Connect Wallet
+        🎮 Start Playing
       </Button>
       
       <WalletModal 
@@ -105,15 +124,23 @@ export function ConnectWallet() {
   );
 }
 
-// Compact address display component for use in other places
-export function WalletAddress({ address }: { address: string }) {
-  return (
-    <span className="font-mono text-gray-400">
-      {formatAddress(address)}
-    </span>
-  );
-}
+// Compact user indicator for use in other places
+export function UserIndicator({ address }: { address: string }) {
+  const [copied, setCopied] = useState(false);
+  
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(address);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
-function formatAddress(address: string): string {
-  return `${address.slice(0, 6)}…${address.slice(-4)}`;
+  return (
+    <button 
+      onClick={handleCopy}
+      className="font-medium text-gray-400 hover:text-gray-300 transition-colors"
+      title={`Click to copy: ${address}`}
+    >
+      {copied ? '✓ Copied!' : 'You'}
+    </button>
+  );
 }

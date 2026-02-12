@@ -30,7 +30,7 @@ export async function generateMetadata(): Promise<Metadata> {
   },
   description: APP_DESCRIPTION,
   applicationName: APP_NAME,
-  keywords: ['coin flip', 'base', 'onchain', 'mini app', 'farcaster', 'game', 'crypto', 'web3'],
+  keywords: ['coin flip', 'base', 'mini app', 'game', 'crypto', 'web3'],
   authors: [{ name: APP_NAME }],
   creator: APP_NAME,
   

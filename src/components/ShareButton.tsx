@@ -3,8 +3,11 @@
 import { useState } from 'react';
 import { APP_URL } from '@/config/app';
 
-// UX Decision: Multiple share options - social + clipboard
-// Clipboard is most reliable for all platforms
+/**
+ * ShareButton - Share game results
+ * Base Mini App Guidelines: Client-agnostic, no Farcaster/Warpcast links
+ * Uses generic share options: X (Twitter) + clipboard
+ */
 
 interface ShareButtonProps {
   won: boolean;
@@ -22,7 +25,7 @@ export function ShareButton({ won, result }: ShareButtonProps) {
     ? `🎉 I just won a coin flip on Base! 🪙${result === 'heads' ? '👑' : '🦅'}`
     : `😅 Lost my coin flip on Base... ${result === 'heads' ? '👑' : '🦅'}`;
 
-  const fullShareText = `${resultText}\n\nTry your luck – 3 free flips per day!\n${appUrl}`;
+  const fullShareText = `${resultText}\n\nTry your luck – 3 free plays daily!\n${appUrl}`;
 
   const handleCopyResult = async () => {
     try {
@@ -49,16 +52,48 @@ export function ShareButton({ won, result }: ShareButtonProps) {
     window.open(twitterUrl, '_blank', 'width=550,height=420');
   };
 
-  const handleShareWarpcast = () => {
-    const text = `${resultText}\n\nTry your luck – 3 free flips per day!`;
-    const warpcastUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(text)}&embeds[]=${encodeURIComponent(appUrl)}`;
-    window.open(warpcastUrl, '_blank', 'width=550,height=620');
+  // Native share API (mobile)
+  const handleNativeShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Coin Flip Result',
+          text: resultText,
+          url: appUrl,
+        });
+      } catch (err) {
+        // User cancelled or error
+        console.log('Share cancelled');
+      }
+    }
   };
+
+  const canNativeShare = typeof navigator !== 'undefined' && !!navigator.share;
 
   return (
     <div className="space-y-3">
-      {/* Social share buttons */}
+      {/* Share buttons */}
       <div className="flex items-center justify-center gap-2">
+        {/* Native share on mobile */}
+        {canNativeShare && (
+          <button
+            onClick={handleNativeShare}
+            className="
+              inline-flex items-center gap-2 px-4 py-2 rounded-xl
+              bg-blue-600 hover:bg-blue-700
+              text-white text-sm font-medium
+              transition-all duration-200
+              hover:scale-105 active:scale-95
+              focus:outline-none focus:ring-2 focus:ring-blue-400/50
+            "
+            aria-label="Share result"
+          >
+            <ShareIcon />
+            <span>Share</span>
+          </button>
+        )}
+
+        {/* X (Twitter) share */}
         <button
           onClick={handleShareX}
           className="
@@ -70,26 +105,10 @@ export function ShareButton({ won, result }: ShareButtonProps) {
             hover:scale-105 active:scale-95
             focus:outline-none focus:ring-2 focus:ring-white/20
           "
-          aria-label="Share result on X (Twitter)"
+          aria-label="Share on X"
         >
           <XLogo />
-          <span>Share</span>
-        </button>
-
-        <button
-          onClick={handleShareWarpcast}
-          className="
-            inline-flex items-center gap-2 px-4 py-2 rounded-xl
-            bg-purple-600 hover:bg-purple-700
-            text-white text-sm font-medium
-            transition-all duration-200
-            hover:scale-105 active:scale-95
-            focus:outline-none focus:ring-2 focus:ring-purple-400/50
-          "
-          aria-label="Share result on Warpcast"
-        >
-          <WarpcastLogo />
-          <span>Cast</span>
+          <span>Post</span>
         </button>
       </div>
 
@@ -149,6 +168,28 @@ export function ShareButton({ won, result }: ShareButtonProps) {
   );
 }
 
+function ShareIcon() {
+  return (
+    <svg 
+      width="16" 
+      height="16" 
+      viewBox="0 0 24 24" 
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <circle cx="18" cy="5" r="3" />
+      <circle cx="6" cy="12" r="3" />
+      <circle cx="18" cy="19" r="3" />
+      <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+      <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+    </svg>
+  );
+}
+
 function XLogo() {
   return (
     <svg 
@@ -159,20 +200,6 @@ function XLogo() {
       aria-hidden="true"
     >
       <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-    </svg>
-  );
-}
-
-function WarpcastLogo() {
-  return (
-    <svg 
-      width="16" 
-      height="16" 
-      viewBox="0 0 24 24" 
-      fill="currentColor"
-      aria-hidden="true"
-    >
-      <path d="M3.5 2h17a1.5 1.5 0 0 1 1.5 1.5v17a1.5 1.5 0 0 1-1.5 1.5h-17A1.5 1.5 0 0 1 2 20.5v-17A1.5 1.5 0 0 1 3.5 2Zm2.75 4L5 10.5h2l.75-2.5h1.5L10 10.5h2L10.75 6h-4.5Zm8 0L13 10.5h2l.75-2.5h1.5L18 10.5h2L18.75 6h-4.5ZM6.25 13.5 5 18h2l.75-2.5h1.5L10 18h2l-1.25-4.5h-4.5Zm8 0L13 18h2l.75-2.5h1.5L18 18h2l-1.25-4.5h-4.5Z"/>
     </svg>
   );
 }

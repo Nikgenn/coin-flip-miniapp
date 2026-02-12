@@ -1,7 +1,11 @@
 'use client';
 
+import Image from 'next/image';
+
 // UX Decision: Dedicated Coin component with proper 3D CSS animation
 // Shows clear visual state: idle, flipping, heads result, tails result
+// When user selects a side, coin flips to show that side
+// Uses custom generated coin images for premium look
 
 type CoinState = 'idle' | 'flipping' | 'heads' | 'tails';
 
@@ -12,12 +16,15 @@ interface CoinProps {
 }
 
 export function Coin({ state, won, selectedSide }: CoinProps) {
-  // Determine which side to show when idle
+  // Determine which side to show
   const showSide = state === 'idle' ? (selectedSide || 'heads') : 
                    state === 'flipping' ? 'heads' : state;
 
   const isFlipping = state === 'flipping';
   const isResult = state === 'heads' || state === 'tails';
+  
+  // Show tails when selected or when result is tails
+  const showTails = showSide === 'tails';
   
   return (
     <div 
@@ -26,26 +33,42 @@ export function Coin({ state, won, selectedSide }: CoinProps) {
       aria-label={
         isFlipping ? 'Coin is flipping...' :
         isResult ? `Result: ${state === 'heads' ? 'Heads' : 'Tails'}${won !== undefined ? (won ? ' - You won!' : ' - You lost') : ''}` :
+        selectedSide ? `Selected: ${selectedSide === 'heads' ? 'Heads' : 'Tails'}` :
         'Coin ready to flip'
       }
     >
       <div 
         className={`
-          coin
+          coin coin-image
           ${isFlipping ? 'coin-flipping' : ''}
+          ${!isFlipping && showTails ? 'coin-show-tails' : ''}
           ${isResult ? `coin-result-${state}` : ''}
           ${isResult && won === true ? 'coin-win' : ''}
           ${isResult && won === false ? 'coin-lose' : ''}
         `}
       >
-        {/* Heads side */}
-        <div className="coin-face coin-heads">
-          <span role="img" aria-hidden="true">👑</span>
+        {/* Heads side - Gold coin with crown */}
+        <div className="coin-face coin-face-image coin-heads-img">
+          <Image 
+            src="/coin-heads.png" 
+            alt="Heads - Gold coin with crown"
+            fill
+            sizes="160px"
+            priority
+            style={{ objectFit: 'contain' }}
+          />
         </div>
         
-        {/* Tails side */}
-        <div className="coin-face coin-tails">
-          <span role="img" aria-hidden="true">🦅</span>
+        {/* Tails side - Silver coin with eagle */}
+        <div className="coin-face coin-face-image coin-tails-img">
+          <Image 
+            src="/coin-tails.png" 
+            alt="Tails - Silver coin with eagle"
+            fill
+            sizes="160px"
+            priority
+            style={{ objectFit: 'contain' }}
+          />
         </div>
       </div>
       

@@ -11,14 +11,15 @@ export { AppHeader } from './AppHeader';
 export { Onboarding } from './Onboarding';
 
 // Wallet & connection
-export { ConnectWallet, WalletAddress } from './ConnectWallet';
+export { ConnectWallet, UserIndicator } from './ConnectWallet';
 export { WalletModal } from './WalletModal';
 
 // Stats & social
 export { PlayerStats } from './PlayerStats';
 export { Leaderboard } from './Leaderboard';
 
-// Providers
-export { Providers } from './Providers';// UI Components
+// Providers & Theme
+export { Providers } from './Providers';
+export { ThemeProvider, ThemeToggle, useTheme } from './ThemeProvider';// UI Components
 export { Button } from './ui/Button';
 export { Card, StatCard } from './ui/Card';

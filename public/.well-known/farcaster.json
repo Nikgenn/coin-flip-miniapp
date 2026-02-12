@@ -29,7 +29,9 @@
     "description": "Onchain coin flip game on Base. 3 free flips per day. No real money — just fun!",
     "heroImageUrl": "https://coin-flip-miniapp-ten.vercel.app/og.png",
     "screenshotUrls": [
-      "https://coin-flip-miniapp-ten.vercel.app/og.png"
+      "https://coin-flip-miniapp-ten.vercel.app/screenshot-1.png",
+      "https://coin-flip-miniapp-ten.vercel.app/screenshot-2.png",
+      "https://coin-flip-miniapp-ten.vercel.app/screenshot-3.png"
     ],
     "ogTitle": "Coin Flip — Base Mini App",
     "ogDescription": "3 free flips per day on Base. No real money — just fun!",

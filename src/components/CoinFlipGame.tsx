@@ -8,12 +8,12 @@ import {
   getContractAddress, 
   isSupportedChain,
   SUPPORTED_CHAIN_ID,
+  getBasescanTxUrl,
 } from '@/config/contract';
 import { 
   prepareGameTx, 
   prepareSponsoredGameTx,
   isSponsorshipAvailable,
-  getSponsorshipStatus,
   type TxMode,
 } from '@/lib/tx';
 import { Button } from './ui/Button';
@@ -24,16 +24,39 @@ import { Confetti } from './Confetti';
 import { ShareButton } from './ShareButton';
 import { FlipsRemaining } from './FlipsRemaining';
 
-// UX Decision: Explicit game states for clear user feedback
+// Transaction states for clear user feedback
 type GameState = 
   | 'idle'           // Ready to choose
   | 'choosing'       // Player selected a side
-  | 'pending'        // Waiting for wallet confirmation
+  | 'submitting'     // Wallet popup open, waiting for signature
   | 'confirming'     // Transaction submitted, waiting for confirmation
   | 'flipping'       // Animation playing
   | 'result';        // Showing result
 
 type Choice = 'heads' | 'tails' | null;
+
+// Gas mode badge component - Base Mini App Guidelines: softer copy
+function GasBadge({ sponsored }: { sponsored: boolean }) {
+  return (
+    <div className="flex flex-col items-end gap-0.5">
+      <span className={`
+        inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium
+        ${sponsored 
+          ? 'bg-green-500/10 text-green-400 border border-green-500/20' 
+          : 'bg-gray-500/10 text-gray-400 border border-gray-500/20'
+        }
+      `}>
+        <span>{sponsored ? '✨' : '⚡'}</span>
+        <span>{sponsored ? 'Free transaction' : 'Network fee may apply'}</span>
+      </span>
+      {!sponsored && (
+        <span className="text-[10px] text-gray-500">
+          Some wallets support free transactions
+        </span>
+      )}
+    </div>
+  );
+}
 
 export function CoinFlipGame() {
   const { address, chain } = useAccount();
@@ -45,6 +68,7 @@ export function CoinFlipGame() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
   const [txMode, setTxMode] = useState<TxMode>('regular');
+  const [lastTxHash, setLastTxHash] = useState<string | null>(null);
 
   // Get contract address for current chain (mainnet only)
   const contractAddress = chain?.id ? getContractAddress(chain.id) : null;
@@ -58,10 +82,6 @@ export function CoinFlipGame() {
   // Determine if sponsorship is available
   const sponsorshipAvailable = useMemo(() => {
     return isSponsorshipAvailable(capabilities);
-  }, [capabilities]);
-
-  const sponsorshipStatus = useMemo(() => {
-    return getSponsorshipStatus(capabilities);
   }, [capabilities]);
 
   // Get player stats including flips remaining
@@ -106,48 +126,77 @@ export function CoinFlipGame() {
   // ============================================================================
   const { 
     writeContracts, 
-    data: sponsoredCallsId,
-    isPending: isSponsoredPending, 
+    data: sponsoredCallsData,
+    isPending: isSponsoredPending,
     error: sponsoredError,
     reset: resetSponsoredWrite,
   } = useWriteContracts();
 
+  // Extract id from sponsoredCallsData (can be string or object with id)
+  const sponsoredCallsId = typeof sponsoredCallsData === 'string' 
+    ? sponsoredCallsData 
+    : sponsoredCallsData?.id;
+
+  // Track sponsored tx status
   const { 
     data: callsStatus,
   } = useCallsStatus({
     id: sponsoredCallsId as string,
     query: {
       enabled: !!sponsoredCallsId,
-      refetchInterval: (data) => 
-        data.state.data?.status === 'CONFIRMED' ? false : 1000,
+      refetchInterval: (data) => {
+        const status = data.state.data?.status;
+        return status === 'success' || status === 'failure' ? false : 1000;
+      },
     },
   });
 
-  const isSponsoredConfirming = callsStatus?.status === 'PENDING';
-  const isSponsoredSuccess = callsStatus?.status === 'CONFIRMED';
+  // Sponsored tx states
+  const isSponsoredConfirming = !!sponsoredCallsId && callsStatus?.status !== 'success' && callsStatus?.status !== 'failure';
+  const isSponsoredSuccess = callsStatus?.status === 'success';
+  const isSponsoredFailed = callsStatus?.status === 'failure';
 
-  // Unified pending/confirming/success states
+  // Extract tx hash from sponsored calls receipts
+  const sponsoredTxHash = callsStatus?.receipts?.[0]?.transactionHash;
+
+  // Unified states
   const isPending = txMode === 'sponsored' ? isSponsoredPending : isRegularPending;
   const isConfirming = txMode === 'sponsored' ? isSponsoredConfirming : isRegularConfirming;
   const isSuccess = txMode === 'sponsored' ? isSponsoredSuccess : isRegularSuccess;
+  const isFailed = txMode === 'sponsored' ? isSponsoredFailed : false;
   const error = txMode === 'sponsored' ? sponsoredError : regularError;
+  const txHash = txMode === 'sponsored' ? sponsoredTxHash : regularHash;
+
+  // Update lastTxHash when we get a hash
+  useEffect(() => {
+    if (txHash) {
+      setLastTxHash(txHash);
+    }
+  }, [txHash]);
 
   // Handle transaction state changes
   useEffect(() => {
     if (isPending && gameState === 'choosing') {
-      setGameState('pending');
+      setGameState('submitting');
     }
   }, [isPending, gameState]);
 
   useEffect(() => {
-    if (isConfirming && gameState === 'pending') {
+    if (isConfirming && (gameState === 'submitting' || gameState === 'choosing')) {
       setGameState('confirming');
     }
   }, [isConfirming, gameState]);
 
+  // For sponsored tx: move to confirming when we get callsId
+  useEffect(() => {
+    if (txMode === 'sponsored' && sponsoredCallsId && gameState === 'submitting') {
+      setGameState('confirming');
+    }
+  }, [txMode, sponsoredCallsId, gameState]);
+
   // Handle successful transaction
   useEffect(() => {
-    if (isSuccess && (gameState === 'confirming' || gameState === 'pending')) {
+    if (isSuccess && (gameState === 'confirming' || gameState === 'submitting')) {
       setGameState('flipping');
       
       // After animation completes, show result
@@ -169,28 +218,34 @@ export function CoinFlipGame() {
     }
   }, [isSuccess, gameState, choice, refetchStats]);
 
+  // Handle sponsored tx failure
+  useEffect(() => {
+    if (isFailed && gameState === 'confirming') {
+      setErrorMessage('Transaction failed on chain');
+      setGameState('idle');
+    }
+  }, [isFailed, gameState]);
+
   // Handle errors with graceful fallback
   useEffect(() => {
     if (error) {
       let message = 'Transaction failed';
       let shouldFallback = false;
       
-      if (error.message.includes('rejected')) {
-        message = 'Transaction was rejected';
+      if (error.message.includes('rejected') || error.message.includes('denied')) {
+        message = 'Transaction rejected';
       } else if (error.message.includes('insufficient funds')) {
         message = 'Insufficient funds for gas';
       } else if (error.message.includes('already flipped')) {
         message = 'You already flipped today';
       } else if (error.message.includes('paymaster') || error.message.includes('sponsor')) {
-        // Paymaster error — offer fallback to regular mode
-        message = 'Gas sponsorship unavailable. You can try again with regular transaction.';
+        message = 'Gas sponsorship unavailable. Try again with regular transaction.';
         shouldFallback = true;
       }
       
       setErrorMessage(message);
       setGameState('idle');
       
-      // If sponsored failed, suggest regular mode
       if (shouldFallback && txMode === 'sponsored') {
         setTxMode('regular');
       }
@@ -207,6 +262,7 @@ export function CoinFlipGame() {
   const handleFlip = useCallback(async () => {
     if (!choice || !chain?.id) return;
     setErrorMessage(null);
+    setLastTxHash(null);
 
     // Determine mode: use sponsored if available, otherwise regular
     const mode: TxMode = sponsorshipAvailable ? 'sponsored' : 'regular';
@@ -214,7 +270,6 @@ export function CoinFlipGame() {
 
     try {
       if (mode === 'sponsored') {
-        // Sponsored transaction (gasless)
         const txParams = prepareSponsoredGameTx({
           chooseHeads: choice === 'heads',
           chainId: chain.id,
@@ -222,7 +277,6 @@ export function CoinFlipGame() {
         
         if (!txParams) {
           // Fallback to regular if sponsored prep fails
-          console.warn('[flip] Sponsored prep failed, falling back to regular');
           setTxMode('regular');
           const regularParams = prepareGameTx({
             chooseHeads: choice === 'heads',
@@ -239,7 +293,6 @@ export function CoinFlipGame() {
           capabilities: txParams.capabilities,
         });
       } else {
-        // Regular transaction (user pays gas)
         const txParams = prepareGameTx({
           chooseHeads: choice === 'heads',
           chainId: chain.id,
@@ -265,6 +318,7 @@ export function CoinFlipGame() {
     setGameState('idle');
     setErrorMessage(null);
     setShowConfetti(false);
+    setLastTxHash(null);
     resetRegularWrite();
     resetSponsoredWrite();
     setTimeout(() => refetchStats(), 500);
@@ -272,6 +326,7 @@ export function CoinFlipGame() {
 
   const handleRetry = () => {
     setErrorMessage(null);
+    setLastTxHash(null);
     resetRegularWrite();
     resetSponsoredWrite();
     if (choice) {
@@ -281,94 +336,58 @@ export function CoinFlipGame() {
     }
   };
 
-  // Contract not deployed for this network
-  if (!contractAddress && chain?.id && isSupportedChain(chain.id)) {
-    return (
-      <Card className="text-center">
-        <div className="text-4xl mb-4">⚠️</div>
-        <h3 className="text-lg font-semibold mb-2">Contract Not Deployed</h3>
-        <p className="text-gray-400 text-sm">
-          Contract is not deployed on Base yet.
-        </p>
-      </Card>
-    );
-  }
-
-  // Wrong network - offer to switch to Base Mainnet only
+  // ============================================================================
+  // RENDER: Network Guard
+  // ============================================================================
   if (isWrongNetwork) {
     return (
       <Card className="text-center">
         <div className="text-4xl mb-4">🔗</div>
-        <h3 className="text-lg font-semibold mb-2">Switch to Base</h3>
+        <h3 className="text-lg font-semibold mb-2">Switch to Base Mainnet</h3>
         <p className="text-gray-400 text-sm mb-4">
-          You're on <span className="text-yellow-400">{chain?.name || 'Unknown'}</span>.
+          This app only works on <span className="text-blue-400">Base Mainnet</span> (Chain ID: 8453).
           <br />
-          Please switch to <span className="text-blue-400">Base</span> to play.
+          <span className="text-yellow-400">Current: {chain?.name || 'Not connected'}</span>
         </p>
         <Button
           onClick={() => switchChain({ chainId: SUPPORTED_CHAIN_ID })}
           isLoading={isSwitching}
-          aria-label="Switch to Base network"
+          aria-label="Switch to Base Mainnet"
         >
-          🔵 Switch to Base
+          🔵 Switch Network
         </Button>
       </Card>
     );
   }
 
-  // Test mode - simulate win/lose for development
-  const handleTestFlip = (forceWin: boolean) => {
-    setChoice('heads');
-    setGameState('flipping');
-    
-    setTimeout(() => {
-      const result = forceWin ? 'heads' : 'tails';
-      setLastResult({ won: forceWin, result });
-      setGameState('result');
-      
-      if (forceWin) {
-        setShowConfetti(true);
-        setTimeout(() => setShowConfetti(false), 3500);
-      }
-    }, 2000);
-  };
+  // Contract not deployed
+  if (!contractAddress && chain?.id && isSupportedChain(chain.id)) {
+    return (
+      <Card className="text-center">
+        <div className="text-4xl mb-4">⚠️</div>
+        <h3 className="text-lg font-semibold mb-2">Contract Not Available</h3>
+        <p className="text-gray-400 text-sm">
+          The game contract is not deployed yet.
+        </p>
+      </Card>
+    );
+  }
 
-  // No flips remaining today
+  // No flips remaining today - softer copy per Base guidelines
   if (!canFlip && gameState === 'idle' && !lastResult) {
     return (
       <Card className="text-center">
         <div className="mb-6">
           <Coin state="heads" />
         </div>
-        <h3 className="text-lg font-semibold mb-2">Come Back Tomorrow!</h3>
+        <h3 className="text-lg font-semibold mb-2">See you tomorrow!</h3>
         <p className="text-gray-400 text-sm mb-4">
-          You've used all 3 free flips today.
+          Free plays reset in:
         </p>
-        <FlipsRemaining remaining={0} />
-        <div className="mt-4">
+        <div className="mb-4">
           {nextFlipTime && <CountdownTimer nextFlipTime={nextFlipTime} />}
         </div>
-        
-        {/* Dev test buttons - remove in production */}
-        {process.env.NODE_ENV === 'development' && (
-          <div className="mt-6 pt-4 border-t border-white/10">
-            <p className="text-xs text-gray-500 mb-3">🛠 Dev Mode</p>
-            <div className="flex gap-2 justify-center">
-              <button
-                onClick={() => handleTestFlip(true)}
-                className="px-3 py-2 text-xs rounded-lg bg-green-500/20 text-green-400 hover:bg-green-500/30"
-              >
-                Test Win 🎉
-              </button>
-              <button
-                onClick={() => handleTestFlip(false)}
-                className="px-3 py-2 text-xs rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30"
-              >
-                Test Lose 😔
-              </button>
-            </div>
-          </div>
-        )}
+        <FlipsRemaining remaining={0} />
       </Card>
     );
   }
@@ -379,19 +398,27 @@ export function CoinFlipGame() {
     gameState === 'result' && lastResult ? lastResult.result :
     'idle';
 
+  // Get status text for transaction states
+  const getStatusText = () => {
+    switch (gameState) {
+      case 'submitting':
+        return 'Submitting…';
+      case 'confirming':
+        return 'Confirming…';
+      case 'flipping':
+        return 'Flipping…';
+      default:
+        return null;
+    }
+  };
+
   return (
     <Card>
-      {/* Flips remaining indicator */}
-      <div className="mb-4">
+      {/* Flips remaining + Gas badge */}
+      <div className="flex items-center justify-between mb-4">
         <FlipsRemaining remaining={flipsRemaining} />
+        <GasBadge sponsored={sponsorshipAvailable} />
       </div>
-
-      {/* Gas sponsorship status */}
-      {gameState === 'idle' && (
-        <div className={`text-center text-xs mb-3 ${sponsorshipAvailable ? 'text-green-400' : 'text-gray-500'}`}>
-          {sponsorshipAvailable ? '⛽ Free gas — sponsored!' : '⛽ Gas required'}
-        </div>
-      )}
 
       {/* Coin Display */}
       <div className="flex justify-center mb-6">
@@ -419,6 +446,18 @@ export function CoinFlipGame() {
             You picked {choice === 'heads' ? '👑 Heads' : '🦅 Tails'} • 
             Result was {lastResult.result === 'heads' ? '👑 Heads' : '🦅 Tails'}
           </p>
+          
+          {/* Basescan link */}
+          {lastTxHash && (
+            <a 
+              href={getBasescanTxUrl(lastTxHash)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block mt-2 text-xs text-blue-400 hover:text-blue-300 underline"
+            >
+              View on Basescan ↗
+            </a>
+          )}
           
           {/* Share button */}
           <div className="mt-4">
@@ -495,25 +534,22 @@ export function CoinFlipGame() {
           <Button
             onClick={handleFlip}
             disabled={!choice || gameState !== 'choosing'}
-            isLoading={gameState === 'pending' || gameState === 'confirming' || gameState === 'flipping'}
+            isLoading={gameState === 'submitting' || gameState === 'confirming' || gameState === 'flipping'}
             size="lg"
             className="w-full"
             aria-label={choice ? `Flip coin with ${choice} selected` : 'Select a side first'}
           >
-            {gameState === 'pending' ? 'Confirm in Wallet...' :
-             gameState === 'confirming' ? 'Confirming...' :
-             gameState === 'flipping' ? 'Flipping...' :
-             sponsorshipAvailable ? '🪙 Flip (Free Gas!)' : '🪙 Flip Coin!'}
+            {getStatusText() || (sponsorshipAvailable ? '🪙 Flip (Free Gas!)' : '🪙 Flip Coin!')}
           </Button>
         )}
       </div>
 
       {/* Status hint */}
-      {(gameState === 'pending' || gameState === 'confirming') && (
+      {(gameState === 'submitting' || gameState === 'confirming') && (
         <p className="text-center text-gray-500 text-xs mt-3 animate-pulse">
-          {gameState === 'pending' 
-            ? 'Please confirm the transaction in your wallet'
-            : 'Waiting for blockchain confirmation...'}
+          {gameState === 'submitting' 
+            ? 'Please confirm in your wallet…'
+            : 'Waiting for blockchain confirmation…'}
         </p>
       )}
     </Card>

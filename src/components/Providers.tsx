@@ -5,6 +5,7 @@ import { WagmiProvider } from 'wagmi';
 import { useState, type ReactNode } from 'react';
 import { config } from '@/config/wagmi';
 import { ErrorBoundary } from './ErrorBoundary';
+import { ThemeProvider } from './ThemeProvider';
 
 export function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(
@@ -22,11 +23,13 @@ export function Providers({ children }: { children: ReactNode }) {
 
   return (
     <ErrorBoundary>
-      <WagmiProvider config={config}>
-        <QueryClientProvider client={queryClient}>
-          {children}
-        </QueryClientProvider>
-      </WagmiProvider>
+      <ThemeProvider>
+        <WagmiProvider config={config}>
+          <QueryClientProvider client={queryClient}>
+            {children}
+          </QueryClientProvider>
+        </WagmiProvider>
+      </ThemeProvider>
     </ErrorBoundary>
   );
 }

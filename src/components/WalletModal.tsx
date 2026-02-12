@@ -8,6 +8,10 @@ interface WalletModalProps {
   onClose: () => void;
 }
 
+/**
+ * WalletModal - wallet selection dialog
+ * Base Mini App Guidelines: Softer copy, "Continue with" instead of "Connect Wallet"
+ */
 export function WalletModal({ isOpen, onClose }: WalletModalProps) {
   const { connectors, connect, isPending } = useConnect();
   const modalRef = useRef<HTMLDivElement>(null);
@@ -58,15 +62,15 @@ export function WalletModal({ isOpen, onClose }: WalletModalProps) {
         ref={modalRef}
         className="w-full max-w-sm bg-gradient-to-b from-gray-800 to-gray-900 rounded-2xl border border-white/10 shadow-2xl animate-slide-up"
       >
-        {/* Header */}
+        {/* Header - softer copy */}
         <div className="flex items-center justify-between p-4 border-b border-white/10">
           <h2 id="wallet-modal-title" className="text-lg font-semibold">
-            Connect Wallet
+            Continue with
           </h2>
           <button
             onClick={onClose}
             className="p-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
-            aria-label="Close modal"
+            aria-label="Close"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -136,7 +140,7 @@ export function WalletModal({ isOpen, onClose }: WalletModalProps) {
         {/* Footer */}
         <div className="p-4 pt-0">
           <p className="text-center text-xs text-gray-500">
-            By connecting, you agree to the Terms of Service
+            Select how you'd like to continue
           </p>
         </div>
       </div>

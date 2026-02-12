@@ -5,12 +5,15 @@ import { useReadContract, useAccount } from 'wagmi';
 import { COINFLIP_ABI, getContractAddress, isSupportedChain, SUPPORTED_CHAIN_ID } from '@/config/contract';
 import { Card } from './ui/Card';
 
-// UX Decision: Collapsible leaderboard - clean UI by default
-// Expands on click to show full rankings
+/**
+ * Leaderboard - Collapsible leaderboard
+ * Base Mini App Guidelines: No 0x addresses shown to users
+ * Shows "Player 1", "Player 2", etc. instead
+ */
 
 export function Leaderboard() {
   const [isOpen, setIsOpen] = useState(false);
-  const { chain } = useAccount();
+  const { chain, address: currentUserAddress } = useAccount();
   const contractAddress = chain?.id ? getContractAddress(chain.id) : null;
   const isSupported = chain?.id ? isSupportedChain(chain.id) : false;
 
@@ -21,8 +24,8 @@ export function Leaderboard() {
     args: [BigInt(10)], // Top 10
     query: {
       enabled: !!contractAddress && isSupported,
-      refetchInterval: 30000, // Refresh every 30s
-      retry: false, // Don't retry on error
+      refetchInterval: 30000,
+      retry: false,
     },
   });
 
@@ -36,7 +39,6 @@ export function Leaderboard() {
     },
   });
 
-  // If contract call fails, don't crash - just hide leaderboard
   if (error) {
     console.error('Leaderboard error:', error);
     return null;
@@ -49,7 +51,6 @@ export function Leaderboard() {
   const [addresses, wins, flips, streaks] = data || [[], [], [], []];
   const playerCount = totalPlayers ? Number(totalPlayers) : 0;
 
-  // Network name for display (mainnet only)
   const networkName = chain?.id === SUPPORTED_CHAIN_ID ? 'Base' : chain?.name || 'Unknown';
 
   return (
@@ -119,6 +120,7 @@ export function Leaderboard() {
                   key={address}
                   rank={index + 1}
                   address={address}
+                  isCurrentUser={address.toLowerCase() === currentUserAddress?.toLowerCase()}
                   wins={Number(wins[index])}
                   flips={Number(flips[index])}
                   bestStreak={Number(streaks[index])}
@@ -135,12 +137,13 @@ export function Leaderboard() {
 interface LeaderboardRowProps {
   rank: number;
   address: string;
+  isCurrentUser: boolean;
   wins: number;
   flips: number;
   bestStreak: number;
 }
 
-function LeaderboardRow({ rank, address, wins, flips, bestStreak }: LeaderboardRowProps) {
+function LeaderboardRow({ rank, address, isCurrentUser, wins, flips, bestStreak }: LeaderboardRowProps) {
   const winRate = flips > 0 ? Math.round((wins / flips) * 100) : 0;
   
   const getRankDisplay = (r: number) => {
@@ -154,11 +157,15 @@ function LeaderboardRow({ rank, address, wins, flips, bestStreak }: LeaderboardR
 
   const { emoji, style } = getRankDisplay(rank);
 
+  // Generate player name - "You" for current user, "Player N" for others
+  const playerName = isCurrentUser ? 'You' : `Player ${rank}`;
+
   return (
     <div 
       className={`
         flex items-center gap-3 p-3 rounded-xl border
         ${style}
+        ${isCurrentUser ? 'ring-2 ring-blue-500/30' : ''}
         transition-all duration-200 hover:scale-[1.01]
       `}
     >
@@ -167,10 +174,10 @@ function LeaderboardRow({ rank, address, wins, flips, bestStreak }: LeaderboardR
         {emoji}
       </div>
 
-      {/* Address */}
+      {/* Player name (no 0x address per Base guidelines) */}
       <div className="flex-1 min-w-0">
-        <p className="font-mono text-sm text-gray-300 truncate">
-          {formatAddress(address)}
+        <p className={`text-sm truncate ${isCurrentUser ? 'font-bold text-blue-400' : 'text-gray-300'}`}>
+          {playerName}
         </p>
       </div>
 
@@ -193,8 +200,4 @@ function LeaderboardRow({ rank, address, wins, flips, bestStreak }: LeaderboardR
       </div>
     </div>
   );
-}
-
-function formatAddress(address: string): string {
-  return `${address.slice(0, 6)}…${address.slice(-4)}`;
 }

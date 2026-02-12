@@ -3,9 +3,10 @@
 import { useAccount } from 'wagmi';
 import { isSupportedChain, SUPPORTED_CHAIN_ID } from '@/config/contract';
 import { APP_NAME, APP_TAGLINE } from '@/config/app';
+import { ThemeToggle } from './ThemeProvider';
 
 /**
- * AppHeader - Displays app branding and network context
+ * AppHeader - Displays app branding, network context, and theme toggle
  * Shows current network status for connected users (Base Mainnet only)
  */
 export function AppHeader() {
@@ -39,27 +40,33 @@ export function AppHeader() {
           </div>
         </div>
 
-        {/* Network indicator (only when connected) */}
-        {isConnected && chain && (
-          <div 
-            className={`
-              flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium
-              ${isSupported 
-                ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' 
-                : 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20'
-              }
-            `}
-            role="status"
-            aria-label={`Connected to ${networkName}`}
-          >
-            <span 
-              className={`w-1.5 h-1.5 rounded-full ${isSupported ? 'bg-blue-400' : 'bg-yellow-400'}`}
-              aria-hidden="true"
-            />
-            <span>{networkName}</span>
-            {!isSupported && <span className="text-yellow-300">⚠️</span>}
-          </div>
-        )}
+        {/* Right side: Network + Theme toggle */}
+        <div className="flex items-center gap-2">
+          {/* Network indicator (only when connected) */}
+          {isConnected && chain && (
+            <div 
+              className={`
+                flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium
+                ${isSupported 
+                  ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' 
+                  : 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20'
+                }
+              `}
+              role="status"
+              aria-label={`Connected to ${networkName}`}
+            >
+              <span 
+                className={`w-1.5 h-1.5 rounded-full ${isSupported ? 'bg-blue-400' : 'bg-yellow-400'}`}
+                aria-hidden="true"
+              />
+              <span>{networkName}</span>
+              {!isSupported && <span className="text-yellow-300">⚠️</span>}
+            </div>
+          )}
+          
+          {/* Theme toggle */}
+          <ThemeToggle />
+        </div>
       </div>
     </header>
   );

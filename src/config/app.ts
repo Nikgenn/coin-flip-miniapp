@@ -5,7 +5,7 @@
 
 export const APP_NAME = 'Coin Flip';
 export const APP_TAGLINE = 'Flip a coin onchain';
-export const APP_DESCRIPTION = 'Onchain coin flip game on Base. 3 free flips per day. No real money — just fun!';
+export const APP_DESCRIPTION = 'Coin flip game on Base. 3 free plays per day. No real money — just fun!';
 
 // Production URL with localhost fallback for development
 export const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
@@ -17,8 +17,8 @@ export const APP_BACKGROUND_COLOR = '#0A0B0D';
 // Social
 export const APP_TWITTER_HANDLE = '@base';
 
-// Networks
-export const SUPPORTED_NETWORKS = ['Base', 'Base Sepolia'] as const;
+// Networks (mainnet only)
+export const SUPPORTED_NETWORKS = ['Base'] as const;
 
 // Contract (current deployment)
 export const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || '0x0000000000000000000000000000000000000000';

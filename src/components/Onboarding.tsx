@@ -7,6 +7,7 @@ import { Coin } from './Coin';
 /**
  * Onboarding - 3-step visual guide for new users
  * Shown when wallet is not connected
+ * Base Mini App Guidelines: No "Connect Wallet" as user-facing step
  */
 export function Onboarding() {
   return (
@@ -21,32 +22,32 @@ export function Onboarding() {
         Ready to test your luck?
       </h2>
       <p className="text-gray-400 text-sm mb-6 max-w-xs mx-auto">
-        Flip a coin onchain. 3 free chances every day!
+        Flip a coin and win. 3 free plays per day!
       </p>
 
-      {/* 3-step guide */}
+      {/* 3-step guide - no "Connect" step per Base guidelines */}
       <div className="flex justify-center gap-4 mb-8 px-4">
         <OnboardingStep 
           step={1} 
-          icon="🔗" 
-          label="Connect" 
-          description="Wallet"
+          icon="👆" 
+          label="Choose" 
+          description="a side"
         />
         <OnboardingStep 
           step={2} 
-          icon="👆" 
-          label="Choose" 
-          description="Heads/Tails"
+          icon="🪙" 
+          label="Flip" 
+          description="the coin"
         />
         <OnboardingStep 
           step={3} 
-          icon="🪙" 
-          label="Flip" 
-          description="& Win!"
+          icon="🎯" 
+          label="See" 
+          description="the result"
         />
       </div>
 
-      {/* Connect CTA */}
+      {/* Primary CTA - "Start Playing" not "Connect Wallet" */}
       <div className="flex justify-center">
         <ConnectWallet />
       </div>
@@ -55,13 +56,13 @@ export function Onboarding() {
       <div className="mt-8 pt-6 border-t border-white/5">
         <div className="flex items-center justify-center gap-4 text-xs text-gray-500">
           <span className="flex items-center gap-1">
-            <span aria-hidden="true">✓</span> Free
+            <span aria-hidden="true">✓</span> Free to play
           </span>
           <span className="flex items-center gap-1">
-            <span aria-hidden="true">⚡</span> No Gas
+            <span aria-hidden="true">⚡</span> Fast
           </span>
           <span className="flex items-center gap-1">
-            <span aria-hidden="true">🔵</span> Built on Base
+            <span aria-hidden="true">🔵</span> On Base
           </span>
         </div>
       </div>
@@ -76,7 +77,7 @@ interface OnboardingStepProps {
   description: string;
 }
 
-function OnboardingStep({ step, icon, label, description }: OnboardingStepProps) {
+function OnboardingStep({ icon, label, description }: OnboardingStepProps) {
   return (
     <div className="flex flex-col items-center">
       <div 
