@@ -232,15 +232,27 @@ export function CoinFlipGame() {
       let message = 'Transaction failed';
       let shouldFallback = false;
       
-      if (error.message.includes('rejected') || error.message.includes('denied')) {
-        message = 'Transaction rejected';
-      } else if (error.message.includes('insufficient funds')) {
-        message = 'Insufficient funds for gas';
-      } else if (error.message.includes('already flipped')) {
-        message = 'You already flipped today';
-      } else if (error.message.includes('paymaster') || error.message.includes('sponsor')) {
-        message = 'Gas sponsorship unavailable. Try again with regular transaction.';
+      const errorMsg = error.message?.toLowerCase() || '';
+      
+      if (errorMsg.includes('rejected') || errorMsg.includes('denied') || errorMsg.includes('user rejected')) {
+        message = 'Transaction cancelled';
+      } else if (errorMsg.includes('insufficient funds') || errorMsg.includes('not enough')) {
+        if (txMode === 'sponsored') {
+          message = 'Gas sponsorship failed. Paymaster may be out of funds or contract not allowlisted.';
+        } else {
+          message = 'Insufficient ETH for gas fee';
+        }
+      } else if (errorMsg.includes('already flipped') || errorMsg.includes('daily limit')) {
+        message = 'Daily limit reached';
+      } else if (errorMsg.includes('paymaster') || errorMsg.includes('sponsor') || errorMsg.includes('bundler')) {
+        message = 'Gas sponsorship unavailable. Check paymaster settings.';
         shouldFallback = true;
+      } else if (errorMsg.includes('execution reverted') || errorMsg.includes('revert')) {
+        message = 'Transaction reverted. Please try again.';
+      } else {
+        // Log full error for debugging
+        console.error('[CoinFlip] Transaction error:', error);
+        message = 'Transaction failed. Please try again.';
       }
       
       setErrorMessage(message);
