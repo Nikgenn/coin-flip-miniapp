@@ -1,6 +1,8 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useAccount } from 'wagmi';
+import { sdk } from '@farcaster/miniapp-sdk';
 import { AppHeader } from '@/components/AppHeader';
 import { Onboarding } from '@/components/Onboarding';
 import { ConnectWallet } from '@/components/ConnectWallet';
@@ -13,6 +15,11 @@ import { Leaderboard } from '@/components/Leaderboard';
 
 export default function Home() {
   const { isConnected, address } = useAccount();
+
+  // Signal to Farcaster/Base App that the Mini App is ready
+  useEffect(() => {
+    sdk.actions.ready();
+  }, []);
 
   return (
     <div className="min-h-screen min-h-dvh flex flex-col">

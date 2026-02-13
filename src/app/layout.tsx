@@ -90,7 +90,7 @@ export async function generateMetadata(): Promise<Metadata> {
       button: {
         title: 'Flip Now!',
         action: {
-          type: 'launch_frame',
+          type: 'launch_miniapp',
           url: APP_URL,
           name: APP_NAME,
           splashImageUrl: `${APP_URL}/splash.png`,
