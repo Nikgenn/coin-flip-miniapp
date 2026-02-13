@@ -12,8 +12,7 @@
     "imageUrl": "https://coin-flip-miniapp-ten.vercel.app/og.png",
     "buttonTitle": "Flip Now!",
     "splashImageUrl": "https://coin-flip-miniapp-ten.vercel.app/splash.png",
-    "splashBackgroundColor": "#0A0B0D",
-    "webhookUrl": "https://coin-flip-miniapp-ten.vercel.app/api/webhook"
+    "splashBackgroundColor": "#0A0B0D"
   },
   "miniapp": {
     "version": "1",
