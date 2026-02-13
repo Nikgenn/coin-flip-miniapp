@@ -42,15 +42,15 @@ function GasBadge({ sponsored }: { sponsored: boolean }) {
       <span className={`
         inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium
         ${sponsored 
-          ? 'bg-green-500/10 text-green-400 border border-green-500/20' 
-          : 'bg-gray-500/10 text-gray-400 border border-gray-500/20'
+          ? 'bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20' 
+          : 'bg-gray-500/10 text-gray-600 dark:text-gray-400 border border-gray-500/20'
         }
       `}>
         <span>{sponsored ? '✨' : '⚡'}</span>
         <span>{sponsored ? 'Free transaction' : 'Network fee may apply'}</span>
       </span>
       {!sponsored && (
-        <span className="text-[10px] text-gray-500">
+        <span className="text-[10px] text-gray-500 dark:text-gray-500">
           Some wallets support free transactions
         </span>
       )}
@@ -485,10 +485,10 @@ export function CoinFlipGame() {
         </div>
       )}
 
-      {/* Choice Selection - Premium button styles */}
+      {/* Choice Selection - Premium button styles with light/dark support */}
       {(gameState === 'idle' || gameState === 'choosing') && (
         <div className="mb-6">
-          <p className="text-center text-gray-400 text-sm mb-4">Choose your side:</p>
+          <p className="text-center text-gray-500 dark:text-gray-400 text-sm mb-4">Choose your side:</p>
           <div className="flex gap-3">
             {/* Heads - Gold gradient when selected */}
             <button
@@ -497,7 +497,7 @@ export function CoinFlipGame() {
                 flex-1 py-4 rounded-xl font-bold text-lg transition-all duration-300
                 ${choice === 'heads'
                   ? 'bg-gradient-to-b from-yellow-400 via-yellow-500 to-yellow-600 text-gray-900 shadow-lg shadow-yellow-500/30 scale-[1.02] border-2 border-yellow-300/50'
-                  : 'bg-gray-800/80 text-gray-300 border-2 border-gray-600/50 hover:bg-gray-700/80 hover:border-gray-500/50'
+                  : 'bg-gray-200 dark:bg-gray-800/80 text-gray-700 dark:text-gray-300 border-2 border-gray-300 dark:border-gray-600/50 hover:bg-gray-300 dark:hover:bg-gray-700/80 hover:border-gray-400 dark:hover:border-gray-500/50'
                 }
               `}
               aria-pressed={choice === 'heads'}
@@ -505,14 +505,14 @@ export function CoinFlipGame() {
             >
               Heads
             </button>
-            {/* Tails - Silver/dark when selected */}
+            {/* Tails - Silver gradient when selected */}
             <button
               onClick={() => handleChoose('tails')}
               className={`
                 flex-1 py-4 rounded-xl font-bold text-lg transition-all duration-300
                 ${choice === 'tails'
                   ? 'bg-gradient-to-b from-gray-300 via-gray-400 to-gray-500 text-gray-900 shadow-lg shadow-gray-400/30 scale-[1.02] border-2 border-gray-200/50'
-                  : 'bg-gray-800/80 text-gray-300 border-2 border-gray-600/50 hover:bg-gray-700/80 hover:border-gray-500/50'
+                  : 'bg-gray-200 dark:bg-gray-800/80 text-gray-700 dark:text-gray-300 border-2 border-gray-300 dark:border-gray-600/50 hover:bg-gray-300 dark:hover:bg-gray-700/80 hover:border-gray-400 dark:hover:border-gray-500/50'
                 }
               `}
               aria-pressed={choice === 'tails'}

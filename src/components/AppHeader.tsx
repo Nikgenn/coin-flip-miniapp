@@ -45,7 +45,7 @@ export function AppHeader() {
                 {APP_NAME}
               </span>
             </h1>
-            <p className="text-xs text-gray-400">{APP_TAGLINE}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{APP_TAGLINE}</p>
           </div>
         </div>
 
