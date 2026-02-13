@@ -18,7 +18,24 @@ export default function Home() {
 
   // Signal to Farcaster/Base App that the Mini App is ready
   useEffect(() => {
-    sdk.actions.ready();
+    const initMiniApp = async () => {
+      try {
+        // Get context to check if running in Mini App
+        const context = await sdk.context;
+        console.log('[MiniApp] Context:', context);
+        
+        // Signal ready to hide splash screen
+        await sdk.actions.ready();
+        console.log('[MiniApp] Ready signal sent successfully');
+      } catch (error) {
+        // Not in Mini App context (regular browser)
+        console.log('[MiniApp] Running outside Mini App context:', error);
+      }
+    };
+    
+    // Small delay to ensure DOM is ready
+    const timer = setTimeout(initMiniApp, 100);
+    return () => clearTimeout(timer);
   }, []);
 
   return (
