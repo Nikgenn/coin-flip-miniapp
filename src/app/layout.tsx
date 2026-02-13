@@ -3,6 +3,7 @@ import { Outfit } from 'next/font/google';
 import './globals.css';
 import { Providers } from '@/components/Providers';
 import { BaseMetaTag } from '@/components/BaseMetaTag';
+import { MiniAppReady } from '@/components/MiniAppReady';
 import {
   APP_NAME,
   APP_TAGLINE,
@@ -121,6 +122,7 @@ export default function RootLayout({
     <html lang="en" className={outfit.variable}>
       <body className={`${outfit.className} text-white min-h-screen min-h-dvh antialiased`}>
         <BaseMetaTag />
+        <MiniAppReady />
         <Providers>{children}</Providers>
       </body>
     </html>
