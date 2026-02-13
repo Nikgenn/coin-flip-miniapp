@@ -16,9 +16,7 @@ export { WalletModal } from './WalletModal';
 
 // Stats & social
 export { PlayerStats } from './PlayerStats';
-export { Leaderboard } from './Leaderboard';
-
-// Providers & Theme
+export { Leaderboard } from './Leaderboard';// Providers & Theme
 export { Providers } from './Providers';
 export { ThemeProvider, ThemeToggle, useTheme } from './ThemeProvider';// UI Components
 export { Button } from './ui/Button';
