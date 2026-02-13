@@ -27,25 +27,38 @@ export function AppHeader() {
   return (
     <header className="w-full px-4 pt-4 pb-3">
       <div className="max-w-[480px] mx-auto flex items-center justify-between">
-        {/* App branding - Premium style */}
+        {/* App branding - Premium gold style like OG image */}
         <div className="flex items-center gap-3">
-          {/* Coin icon with glow */}
-          <div className="relative">
-            <div className="absolute inset-0 bg-yellow-400/30 rounded-full blur-lg" aria-hidden="true" />
-            <img 
-              src="/coin-heads.png" 
-              alt="" 
-              className="relative w-10 h-10 rounded-full shadow-lg shadow-yellow-500/20"
-              aria-hidden="true"
-            />
+          {/* Dual coins with glow */}
+          <div className="relative flex items-center">
+            {/* Gold coin */}
+            <div className="relative">
+              <div className="absolute inset-0 bg-yellow-400/40 rounded-full blur-md" aria-hidden="true" />
+              <img 
+                src="/coin-heads.png" 
+                alt="" 
+                className="relative w-9 h-9 rounded-full shadow-lg shadow-yellow-500/30"
+                aria-hidden="true"
+              />
+            </div>
+            {/* Silver coin (overlapping) */}
+            <div className="relative -ml-3">
+              <div className="absolute inset-0 bg-gray-300/30 rounded-full blur-md" aria-hidden="true" />
+              <img 
+                src="/coin-tails.png" 
+                alt="" 
+                className="relative w-9 h-9 rounded-full shadow-lg shadow-gray-400/30"
+                aria-hidden="true"
+              />
+            </div>
           </div>
           <div>
-            <h1 className="text-xl font-black leading-tight tracking-tight">
-              <span className="bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500 bg-clip-text text-transparent drop-shadow-[0_0_10px_rgba(250,204,21,0.3)]">
+            <h1 className="text-xl font-black leading-tight tracking-wide uppercase">
+              <span className="bg-gradient-to-r from-yellow-200 via-yellow-400 to-amber-500 bg-clip-text text-transparent drop-shadow-[0_2px_4px_rgba(250,204,21,0.4)]">
                 {APP_NAME}
               </span>
             </h1>
-            <p className="text-xs text-gray-500 dark:text-gray-400">{APP_TAGLINE}</p>
+            <p className="text-[10px] text-gray-500 dark:text-gray-400 tracking-wider">3 Free Plays Daily</p>
           </div>
         </div>
 
