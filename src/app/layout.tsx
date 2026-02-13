@@ -83,6 +83,21 @@ export async function generateMetadata(): Promise<Metadata> {
   manifest: '/manifest.json',
   other: {
     'base:app_id': '697a5f552dbd4b464042aea2',
+    // Farcaster Mini App embed metadata (required for previews)
+    'fc:miniapp': JSON.stringify({
+      version: 'next',
+      imageUrl: `${APP_URL}/og.png`,
+      button: {
+        title: 'Flip Now!',
+        action: {
+          type: 'launch_frame',
+          url: APP_URL,
+          name: APP_NAME,
+          splashImageUrl: `${APP_URL}/splash.png`,
+          splashBackgroundColor: '#0A0B0D',
+        },
+      },
+    }),
   },
   };
 }
