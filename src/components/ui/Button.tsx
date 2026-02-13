@@ -18,13 +18,15 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variants: Record<ButtonVariant, string> = {
   primary: `
-    bg-gradient-to-r from-blue-500 to-blue-600 
-    hover:from-blue-600 hover:to-blue-700 
-    active:from-blue-700 active:to-blue-800
-    text-white font-semibold
-    shadow-lg shadow-blue-500/25
-    hover:shadow-xl hover:shadow-blue-500/30
-    disabled:from-gray-600 disabled:to-gray-700 
+    bg-gradient-to-b from-blue-400 via-blue-500 to-blue-600 
+    hover:from-blue-500 hover:via-blue-600 hover:to-blue-700 
+    active:from-blue-600 active:via-blue-700 active:to-blue-800
+    text-white font-bold
+    shadow-lg shadow-blue-500/40
+    hover:shadow-xl hover:shadow-blue-500/50
+    border border-blue-400/30
+    disabled:from-gray-600 disabled:via-gray-700 disabled:to-gray-800
+    disabled:border-gray-600/30
     disabled:shadow-none disabled:cursor-not-allowed
   `,
   secondary: `

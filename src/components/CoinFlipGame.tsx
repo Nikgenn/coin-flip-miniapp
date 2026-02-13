@@ -444,19 +444,26 @@ export function CoinFlipGame() {
       {/* Confetti celebration */}
       <Confetti isActive={showConfetti} />
 
-      {/* Result Message */}
+      {/* Result Message - Premium victory/defeat styling */}
       {gameState === 'result' && lastResult && (
         <div 
           className="text-center mb-6 animate-slide-up"
           role="alert"
           aria-live="assertive"
         >
-          <p className={`text-2xl font-bold ${lastResult.won ? 'text-green-400' : 'text-red-400'}`}>
-            {lastResult.won ? '🎉 You Won!' : '😔 You Lost'}
+          {/* Victory/Defeat text with glow effect */}
+          <p className={`
+            text-3xl font-black tracking-wide
+            ${lastResult.won 
+              ? 'text-transparent bg-clip-text bg-gradient-to-b from-green-300 via-green-400 to-green-500 drop-shadow-[0_0_20px_rgba(74,222,128,0.5)]' 
+              : 'text-transparent bg-clip-text bg-gradient-to-b from-red-300 via-red-400 to-red-500 drop-shadow-[0_0_20px_rgba(248,113,113,0.5)]'
+            }
+          `}>
+            {lastResult.won ? 'You Won!' : 'You Lost'}
           </p>
-          <p className="text-gray-400 text-sm mt-2">
-            You picked {choice === 'heads' ? '👑 Heads' : '🦅 Tails'} • 
-            Result was {lastResult.result === 'heads' ? '👑 Heads' : '🦅 Tails'}
+          <p className="text-gray-300 text-sm mt-3">
+            You picked <span className="font-semibold text-white">{choice === 'heads' ? 'Heads' : 'Tails'}</span> – 
+            Result was <span className="font-semibold text-white">{lastResult.result === 'heads' ? 'Heads' : 'Tails'}</span>
           </p>
           
           {/* Basescan link */}
@@ -471,45 +478,47 @@ export function CoinFlipGame() {
             </a>
           )}
           
-          {/* Share button */}
-          <div className="mt-4">
+          {/* Share buttons */}
+          <div className="mt-5">
             <ShareButton won={lastResult.won} result={lastResult.result} />
           </div>
         </div>
       )}
 
-      {/* Choice Selection */}
+      {/* Choice Selection - Premium button styles */}
       {(gameState === 'idle' || gameState === 'choosing') && (
         <div className="mb-6">
           <p className="text-center text-gray-400 text-sm mb-4">Choose your side:</p>
           <div className="flex gap-3">
+            {/* Heads - Gold gradient when selected */}
             <button
               onClick={() => handleChoose('heads')}
               className={`
-                flex-1 py-4 rounded-xl font-semibold transition-all duration-200
+                flex-1 py-4 rounded-xl font-bold text-lg transition-all duration-300
                 ${choice === 'heads'
-                  ? 'bg-yellow-500/20 text-yellow-400 border-2 border-yellow-500/50 scale-[1.02]'
-                  : 'bg-white/5 text-gray-300 border-2 border-transparent hover:bg-white/10'
+                  ? 'bg-gradient-to-b from-yellow-400 via-yellow-500 to-yellow-600 text-gray-900 shadow-lg shadow-yellow-500/30 scale-[1.02] border-2 border-yellow-300/50'
+                  : 'bg-gray-800/80 text-gray-300 border-2 border-gray-600/50 hover:bg-gray-700/80 hover:border-gray-500/50'
                 }
               `}
               aria-pressed={choice === 'heads'}
               aria-label="Choose Heads"
             >
-              👑 Heads
+              Heads
             </button>
+            {/* Tails - Silver/dark when selected */}
             <button
               onClick={() => handleChoose('tails')}
               className={`
-                flex-1 py-4 rounded-xl font-semibold transition-all duration-200
+                flex-1 py-4 rounded-xl font-bold text-lg transition-all duration-300
                 ${choice === 'tails'
-                  ? 'bg-gray-400/20 text-gray-300 border-2 border-gray-400/50 scale-[1.02]'
-                  : 'bg-white/5 text-gray-300 border-2 border-transparent hover:bg-white/10'
+                  ? 'bg-gradient-to-b from-gray-300 via-gray-400 to-gray-500 text-gray-900 shadow-lg shadow-gray-400/30 scale-[1.02] border-2 border-gray-200/50'
+                  : 'bg-gray-800/80 text-gray-300 border-2 border-gray-600/50 hover:bg-gray-700/80 hover:border-gray-500/50'
                 }
               `}
               aria-pressed={choice === 'tails'}
               aria-label="Choose Tails"
             >
-              🦅 Tails
+              Tails
             </button>
           </div>
         </div>

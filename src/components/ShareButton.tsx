@@ -72,96 +72,46 @@ export function ShareButton({ won, result }: ShareButtonProps) {
 
   return (
     <div className="space-y-3">
-      {/* Share buttons */}
-      <div className="flex items-center justify-center gap-2">
-        {/* Native share on mobile */}
-        {canNativeShare && (
-          <button
-            onClick={handleNativeShare}
-            className="
-              inline-flex items-center gap-2 px-4 py-2 rounded-xl
-              bg-blue-600 hover:bg-blue-700
-              text-white text-sm font-medium
-              transition-all duration-200
-              hover:scale-105 active:scale-95
-              focus:outline-none focus:ring-2 focus:ring-blue-400/50
-            "
-            aria-label="Share result"
-          >
-            <ShareIcon />
-            <span>Share</span>
-          </button>
-        )}
+      {/* Main share buttons - Premium dark style */}
+      <div className="flex items-center justify-center gap-3">
+        {/* Share button */}
+        <button
+          onClick={canNativeShare ? handleNativeShare : handleCopyResult}
+          className="
+            flex-1 max-w-[140px] inline-flex items-center justify-center gap-2 
+            px-5 py-3 rounded-xl
+            bg-gray-800/90 hover:bg-gray-700/90
+            border border-gray-600/50 hover:border-gray-500/50
+            text-white text-sm font-semibold
+            transition-all duration-200
+            hover:scale-[1.02] active:scale-[0.98]
+            shadow-lg shadow-black/20
+            focus:outline-none focus:ring-2 focus:ring-white/20
+          "
+          aria-label="Share result"
+        >
+          <ShareIcon />
+          <span>{copied === 'result' ? 'Copied!' : 'Share'}</span>
+        </button>
 
-        {/* X (Twitter) share */}
+        {/* Post (X/Twitter) button */}
         <button
           onClick={handleShareX}
           className="
-            inline-flex items-center gap-2 px-4 py-2 rounded-xl
-            bg-black hover:bg-gray-900 
-            border border-white/20 hover:border-white/30
-            text-white text-sm font-medium
+            flex-1 max-w-[140px] inline-flex items-center justify-center gap-2 
+            px-5 py-3 rounded-xl
+            bg-gray-800/90 hover:bg-gray-700/90
+            border border-gray-600/50 hover:border-gray-500/50
+            text-white text-sm font-semibold
             transition-all duration-200
-            hover:scale-105 active:scale-95
+            hover:scale-[1.02] active:scale-[0.98]
+            shadow-lg shadow-black/20
             focus:outline-none focus:ring-2 focus:ring-white/20
           "
-          aria-label="Share on X"
+          aria-label="Post on X"
         >
-          <XLogo />
+          <MegaphoneIcon />
           <span>Post</span>
-        </button>
-      </div>
-
-      {/* Copy buttons */}
-      <div className="flex items-center justify-center gap-2">
-        <button
-          onClick={handleCopyResult}
-          className="
-            inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg
-            bg-white/5 hover:bg-white/10
-            border border-white/10 hover:border-white/20
-            text-gray-400 hover:text-white text-xs font-medium
-            transition-all duration-200
-            focus:outline-none focus:ring-2 focus:ring-white/20
-          "
-          aria-label="Copy result to clipboard"
-        >
-          {copied === 'result' ? (
-            <>
-              <CheckIcon />
-              <span>Copied!</span>
-            </>
-          ) : (
-            <>
-              <CopyIcon />
-              <span>Copy result</span>
-            </>
-          )}
-        </button>
-
-        <button
-          onClick={handleCopyLink}
-          className="
-            inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg
-            bg-white/5 hover:bg-white/10
-            border border-white/10 hover:border-white/20
-            text-gray-400 hover:text-white text-xs font-medium
-            transition-all duration-200
-            focus:outline-none focus:ring-2 focus:ring-white/20
-          "
-          aria-label="Copy app link to clipboard"
-        >
-          {copied === 'link' ? (
-            <>
-              <CheckIcon />
-              <span>Copied!</span>
-            </>
-          ) : (
-            <>
-              <LinkIcon />
-              <span>Copy link</span>
-            </>
-          )}
         </button>
       </div>
     </div>
@@ -256,6 +206,20 @@ function CheckIcon() {
       aria-hidden="true"
     >
       <polyline points="20 6 9 17 4 12" />
+    </svg>
+  );
+}
+
+function MegaphoneIcon() {
+  return (
+    <svg 
+      width="18" 
+      height="18" 
+      viewBox="0 0 24 24" 
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      <path d="M3 10v4c0 1.1.9 2 2 2h3l5 4V4L8 8H5c-1.1 0-2 .9-2 2zm13.5 2c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
     </svg>
   );
 }
