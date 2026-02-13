@@ -540,7 +540,7 @@ export function CoinFlipGame() {
         </div>
       )}
 
-      {/* Action Buttons */}
+      {/* Action Buttons - Premium styling */}
       <div className="space-y-3">
         {gameState === 'result' ? (
           <Button
@@ -549,7 +549,12 @@ export function CoinFlipGame() {
             size="lg"
             className="w-full"
           >
-            {flipsRemaining > 0 ? `🪙 Play Again (${flipsRemaining} left)` : 'Done for Today'}
+            {flipsRemaining > 0 ? (
+              <>
+                <span className="text-xl">🪙</span>
+                <span>Play Again ({flipsRemaining} left)</span>
+              </>
+            ) : 'Done for Today'}
           </Button>
         ) : (
           <Button
@@ -560,7 +565,12 @@ export function CoinFlipGame() {
             className="w-full"
             aria-label={choice ? `Flip coin with ${choice} selected` : 'Select a side first'}
           >
-            {getStatusText() || (sponsorshipAvailable ? '🪙 Flip (Free Gas!)' : '🪙 Flip Coin!')}
+            {getStatusText() || (
+              <>
+                <span className="text-xl">🪙</span>
+                <span>{choice ? 'Start Playing' : 'Flip Coin!'}</span>
+              </>
+            )}
           </Button>
         )}
       </div>
