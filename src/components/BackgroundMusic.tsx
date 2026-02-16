@@ -2,7 +2,7 @@
  * Background Music Component
  * 
  * Provides a floating toggle button for background music control.
- * Positioned top-right, doesn't interfere with gameplay.
+ * Positioned bottom-right, doesn't interfere with header or gameplay.
  */
 
 'use client';
@@ -21,7 +21,7 @@ export function BackgroundMusic() {
     <button
       onClick={toggle}
       className="
-        fixed top-4 right-4 z-50
+        fixed bottom-6 right-4 z-50
         w-12 h-12
         flex items-center justify-center
         rounded-full
