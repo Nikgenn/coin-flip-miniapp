@@ -4,6 +4,7 @@ import './globals.css';
 import { Providers } from '@/components/Providers';
 import { BaseMetaTag } from '@/components/BaseMetaTag';
 import { MiniAppReady } from '@/components/MiniAppReady';
+import { BackgroundMusic } from '@/components/BackgroundMusic';
 import {
   APP_NAME,
   APP_TAGLINE,
@@ -123,7 +124,10 @@ export default function RootLayout({
       <body className={`${outfit.className} text-white min-h-screen min-h-dvh antialiased`}>
         <BaseMetaTag />
         <MiniAppReady />
-        <Providers>{children}</Providers>
+        <Providers>
+          {children}
+          <BackgroundMusic />
+        </Providers>
       </body>
     </html>
   );

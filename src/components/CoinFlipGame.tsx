@@ -23,6 +23,7 @@ import { CountdownTimer } from './CountdownTimer';
 import { Confetti } from './Confetti';
 import { ShareButton } from './ShareButton';
 import { FlipsRemaining } from './FlipsRemaining';
+import { useAudioUnlock } from './BackgroundMusic';
 
 // Transaction states for clear user feedback
 type GameState = 
@@ -61,6 +62,7 @@ function GasBadge({ sponsored }: { sponsored: boolean }) {
 export function CoinFlipGame() {
   const { address, chain } = useAccount();
   const { switchChain, isPending: isSwitching } = useSwitchChain();
+  const unlockAudio = useAudioUnlock();
   
   const [choice, setChoice] = useState<Choice>(null);
   const [gameState, setGameState] = useState<GameState>('idle');
@@ -118,8 +120,12 @@ export function CoinFlipGame() {
   
   const { 
     isLoading: isRegularConfirming, 
-    isSuccess: isRegularSuccess 
-  } = useWaitForTransactionReceipt({ hash: regularHash });
+    isSuccess: isRegularSuccess,
+    isError: isRegularReceiptError,
+  } = useWaitForTransactionReceipt({ 
+    hash: regularHash,
+    timeout: 120000, // 2 minute timeout
+  });
 
   // ============================================================================
   // SPONSORED TRANSACTION (gasless via paymaster)
@@ -140,6 +146,7 @@ export function CoinFlipGame() {
   // Track sponsored tx status
   const { 
     data: callsStatus,
+    error: callsStatusError,
   } = useCallsStatus({
     id: sponsoredCallsId as string,
     query: {
@@ -148,6 +155,8 @@ export function CoinFlipGame() {
         const status = data.state.data?.status;
         return status === 'success' || status === 'failure' ? false : 1000;
       },
+      // Add timeout for sponsored transactions
+      retry: 120, // Max 120 retries at 1s each = 2 minutes
     },
   });
 
@@ -163,8 +172,8 @@ export function CoinFlipGame() {
   const isPending = txMode === 'sponsored' ? isSponsoredPending : isRegularPending;
   const isConfirming = txMode === 'sponsored' ? isSponsoredConfirming : isRegularConfirming;
   const isSuccess = txMode === 'sponsored' ? isSponsoredSuccess : isRegularSuccess;
-  const isFailed = txMode === 'sponsored' ? isSponsoredFailed : false;
-  const error = txMode === 'sponsored' ? sponsoredError : regularError;
+  const isFailed = txMode === 'sponsored' ? isSponsoredFailed : isRegularReceiptError;
+  const error = txMode === 'sponsored' ? (sponsoredError || callsStatusError) : regularError;
   const txHash = txMode === 'sponsored' ? sponsoredTxHash : regularHash;
 
   // Update lastTxHash when we get a hash
@@ -226,6 +235,21 @@ export function CoinFlipGame() {
     }
   }, [isFailed, gameState]);
 
+  // Add timeout handler for stuck transactions (2 minutes)
+  useEffect(() => {
+    if (gameState === 'confirming') {
+      const timeoutId = setTimeout(() => {
+        if (gameState === 'confirming') {
+          console.warn('[CoinFlip] Transaction confirmation timeout');
+          setErrorMessage('Transaction is taking longer than expected. Please check your wallet or Basescan.');
+          setGameState('idle');
+        }
+      }, 120000); // 2 minutes
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [gameState]);
+
   // Handle errors with graceful fallback
   useEffect(() => {
     if (error) {
@@ -275,6 +299,9 @@ export function CoinFlipGame() {
     if (!choice || !chain?.id) return;
     setErrorMessage(null);
     setLastTxHash(null);
+
+    // Unlock audio on first user interaction (mobile autoplay policy)
+    unlockAudio();
 
     // Determine mode: use sponsored if available, otherwise regular
     const mode: TxMode = sponsorshipAvailable ? 'sponsored' : 'regular';

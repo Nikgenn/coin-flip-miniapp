@@ -5,6 +5,7 @@ export { FlipsRemaining } from './FlipsRemaining';
 export { CountdownTimer } from './CountdownTimer';
 export { Confetti } from './Confetti';
 export { ShareButton } from './ShareButton';
+export { BackgroundMusic, useAudioUnlock } from './BackgroundMusic';
 
 // Layout & navigation
 export { AppHeader } from './AppHeader';
@@ -16,8 +17,12 @@ export { WalletModal } from './WalletModal';
 
 // Stats & social
 export { PlayerStats } from './PlayerStats';
-export { Leaderboard } from './Leaderboard';// Providers & Theme
+export { Leaderboard } from './Leaderboard';
+
+// Providers & Theme
 export { Providers } from './Providers';
-export { ThemeProvider, ThemeToggle, useTheme } from './ThemeProvider';// UI Components
+export { ThemeProvider, ThemeToggle, useTheme } from './ThemeProvider';
+
+// UI Components
 export { Button } from './ui/Button';
 export { Card, StatCard } from './ui/Card';
